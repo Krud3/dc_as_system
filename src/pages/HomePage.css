@@ -1,0 +1,100 @@
+.home {
+  --home-ink: #f4f7ff;
+  --home-muted: color-mix(in srgb, #f4f7ff 72%, transparent);
+  --home-cta: #fff;
+  --home-cta-ink: #0a0a0a;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+  overflow: hidden;
+  background: #0a0a0a;
+  color: var(--home-ink);
+}
+
+.home__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: auto;
+}
+
+.home__copy {
+  position: relative;
+  z-index: 1;
+  max-width: 38rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.home__brand {
+  margin: 0 0 16px;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 0.92;
+  color: var(--home-ink);
+  text-shadow: 0 0 48px color-mix(in srgb, #5227ff 45%, transparent);
+}
+
+.home h1 {
+  margin: 0 0 12px;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(1.15rem, 2.4vw, 1.45rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--home-ink);
+}
+
+.home__lead {
+  margin: 0 auto 28px;
+  max-width: 28rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--home-muted);
+}
+
+.home__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.home__cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: var(--home-cta);
+  color: var(--home-cta-ink);
+  text-decoration: none;
+  font-family: var(--font-heading, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.home__cta:hover {
+  background: #e8ecff;
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home__cta {
+    transition: none;
+  }
+
+  .home__cta:hover {
+    transform: none;
+  }
+}

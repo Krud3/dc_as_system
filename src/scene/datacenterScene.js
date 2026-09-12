@@ -1,1002 +1,58 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<title>Datacenter — sistema en 3D</title>
-<link rel="stylesheet" href="_ds/industry-248df370-ace1-48bd-a7e9-608338eb52eb/styles.css">
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.184.0/build/three.module.js",
-    "three/addons/controls/OrbitControls.js": "https://unpkg.com/three@0.184.0/examples/jsm/controls/OrbitControls.js",
-    "three/addons/exporters/OBJExporter.js": "https://unpkg.com/three@0.184.0/examples/jsm/exporters/OBJExporter.js",
-    "three/addons/exporters/GLTFExporter.js": "https://unpkg.com/three@0.184.0/examples/jsm/exporters/GLTFExporter.js"
-  },
-  "integrity": {
-    "https://unpkg.com/three@0.184.0/build/three.module.js": "sha384-8FCZ1eVO6it4+pbec2aDtnTrwjWXZLJRC+MAGCIPDgsYnUrl/E0A2YlF8ioMKI/J",
-    "https://unpkg.com/three@0.184.0/build/three.core.js": "sha384-dw2ooPewaEIrAgl6oFDBmmBWCE9oW9LxRGcfwZ0hLvEprzo202wXl7vCYHRlSnOT",
-    "https://unpkg.com/three@0.184.0/examples/jsm/controls/OrbitControls.js": "sha384-4rziNxOBZKQ69i+w+f89KJ55TCYquwchVbByQwmaOeIOXdOU2PLDn3kOfXHwIJC9",
-    "https://unpkg.com/three@0.184.0/examples/jsm/exporters/OBJExporter.js": "sha384-nbwtoZENJD3Vq+ACK0CuGQdPMuDWHkamC2KJD70EV5nfg6jQjfppKOea07YJN+N3",
-    "https://unpkg.com/three@0.184.0/examples/jsm/exporters/GLTFExporter.js": "sha384-VofkvpG6HERhFCYbsUOHeNXBCqID2nfqkQqnVzE1jc/oPcz+qJ13ADdXH08hE+cQ"
-  }
-}
-</script>
-<style>
-  html,body{margin:0;height:100%;background:#cfe9f8;font-family:var(--font-body);color:var(--color-text)}
-  three-d-stage:not(:defined){visibility:hidden}
-  three-d-stage{display:block;width:100vw;height:100vh;--stage-bg:#cfe9f8}
-  #panel{position:fixed;left:18px;top:18px;width:272px;max-height:calc(100vh - 36px);box-sizing:border-box;display:flex;flex-direction:column;padding:16px 16px 14px;background:rgba(255,255,255,.92);border:1px solid rgba(29,45,61,.14);border-radius:16px;box-shadow:0 18px 50px rgba(29,45,61,.18),0 2px 8px rgba(29,45,61,.1);transition:background .4s,color .4s}
-  #layers{overflow:auto;min-height:0;flex:1;scrollbar-width:thin;padding-right:2px}
-  body.noche #panel{background:rgba(24,38,52,.82);color:#eef4fb;border-color:rgba(148,188,227,.35);box-shadow:0 18px 50px rgba(0,0,0,.45)}
-  body.noche #panel p,body.noche #sel{color:#b5d9fd}
-  body.noche #panel .k,body.noche #estado{color:#b5d9fd}
-  body.noche .corner::before,body.noche .corner::after{background:#94bce3}
-  body.noche .btn-rayo{background:linear-gradient(180deg,#334e68,#1c2f42);border-color:#94bce3;color:#cfe6fb;box-shadow:0 1px 6px rgba(0,0,0,.45),inset 0 1px 0 rgba(181,217,253,.15)}
-  body.noche .btn-rayo:hover{background:linear-gradient(180deg,#94bce3,#5980a6);border-color:#b5d9fd;color:#10202f;box-shadow:0 4px 14px rgba(148,188,227,.35)}
-  body.noche .btn-rayo:active{background:#5980a6;color:#fff}
-  body.noche .btn-rayo:disabled{opacity:.4}
-  body.noche .modo{border-color:#94bce3}
-  body.noche .modo button[aria-pressed="true"]{background:linear-gradient(180deg,#94bce3,#4a7ba6);color:#10202f}
-  #panel h1{font-family:var(--font-heading);font-weight:700;font-size:19px;line-height:1.05;margin:0 0 3px;text-transform:uppercase;letter-spacing:.02em;color:#1d2d3d}
-  body.noche #panel h1{color:#f2f2f3}
-  #panel p{margin:0 0 10px;font-size:12px;color:#5b6b7a}
-  #panel label{display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 6px;border-radius:8px;cursor:pointer;transition:background .15s}
-  #panel label:hover{background:rgba(89,128,166,.1)}
-  body.noche #panel label:hover{background:rgba(148,188,227,.12)}
-  #panel .nocheck{width:13px;height:13px;flex:none}
-  #panel .k{width:18px}
-  #panel label.row{justify-content:space-between}
-  #panel label .lbl{display:flex;align-items:center;gap:8px}
-  .btn-rayo{position:relative;font-family:var(--font-heading);font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:4px 10px;border:1px solid #5980a6;border-radius:20px;background:linear-gradient(180deg,#fff,#e8f1f8);color:#2c4a64;cursor:pointer;box-shadow:0 1px 4px rgba(44,74,100,.18);transition:all .15s}
-  .btn-rayo:hover{background:#5980a6;color:#fff;transform:translateY(-1px);box-shadow:0 4px 12px rgba(89,128,166,.4)}
-  .btn-rayo:active{transform:translateY(0)}
-  .btn-rayo:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
-  .btn-rayo:disabled{opacity:.45;cursor:default;transform:none}
-  #estado{font-family:var(--font-heading);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#2c5a7f;margin-top:8px;min-height:14px}
-  #panel input{accent-color:#2f7fc1;margin:0;width:14px;height:14px}
-  #panel .k{font-family:var(--font-heading);font-size:11px;font-weight:700;color:#2f7fc1;width:20px}
-  #sel{margin-top:10px;padding:10px 10px 8px;border-top:1px solid var(--color-divider);font-size:12px;min-height:30px;max-height:120px;overflow:auto;flex:none;background:rgba(89,128,166,.07);border-radius:10px}
-  .modo{display:flex;gap:0;margin:0 0 10px;border:1px solid #5980a6;border-radius:20px;overflow:hidden}
-  .modo button{flex:1;font-family:var(--font-heading);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 0;border:0;background:transparent;color:inherit;cursor:pointer;transition:all .2s}
-  .modo button[aria-pressed="true"]{background:linear-gradient(180deg,#3d6a8f,#2c4a64);color:#fff}
-  .modo button:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
-  #sel b{font-family:var(--font-heading);font-size:15px;font-weight:600;display:block}
-  .corner{position:absolute;width:9px;height:9px;pointer-events:none;opacity:.6}
-  .corner::before,.corner::after{content:"";position:absolute;background:var(--color-text)}
-  .corner::before{left:4px;top:0;width:1px;height:9px}.corner::after{top:4px;left:0;width:9px;height:1px}
-  .tl{left:-5px;top:-5px}.tr{right:-5px;top:-5px}.bl{left:-5px;bottom:-5px}.br{right:-5px;bottom:-5px}
-</style>
-</head>
-<body>
-<three-d-stage name="datacenter" background="#cfe9f8" autorotate></three-d-stage>
-<aside id="panel"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-  <h1>Datacenter como sistema</h1>
-  <p>19 principios TGS · clic en un objeto para identificarlo</p>
-  <div class="modo" role="group" aria-label="Iluminación"><button id="mDia" aria-pressed="false">Día</button><button id="mNoche" aria-pressed="true">Noche</button></div>
-  <div id="layers"></div>
-  <div id="estado"></div>
-  <div id="sel">—</div>
-</aside>
-<script src="./three-d-stage.js"></script>
-<script type="module">
-const stage = document.querySelector('three-d-stage');
+/** Escena datacenter (Three.js imperativo). Montada desde React sin R3F. */
+import { createMaterials } from './materials.js';
+import { createPrimitives } from './primitives.js';
+import { createRootHierarchy, createCampusLayout } from './layout.js';
+import { createPlantSystem } from './plants.js';
+import { buildEntorno } from './build/entorno.js';
+import { buildFrontera } from './build/frontera.js';
+import { buildProcesos } from './build/procesos.js';
+import { buildEntradas } from './build/entradas.js';
+import { buildSalidas } from './build/salidas.js';
+import { buildRetroalimentacion } from './build/retroalimentacion.js';
+import { buildResiliencia } from './build/resiliencia.js';
+import { buildProps } from './build/props.js';
+import { createScriptedCamera } from './cameraScripted.js';
+import { easeInOutCubic } from './ease.js';
+
+/**
+ * @param {HTMLElement} stage — instancia de <three-d-stage> ya en el DOM
+ */
+export async function mountDatacenterScene(stage) {
 const { THREE } = await stage.ready;
 
-const mat = (name, color, roughness = 0.7, metalness = 0.1, extra = {}) =>
-  Object.assign(new THREE.MeshStandardMaterial({ color, roughness, metalness, ...extra }), { name });
+const { M, mat } = createMaterials(THREE);
+const { box, cyl, line, decoBox, decoCyl, aspas } = createPrimitives(THREE, M);
+const { ROOT, SUB } = createRootHierarchy(THREE);
+const layout = createCampusLayout();
+const { placePlant, plantsReady } = createPlantSystem(THREE, SUB.entorno);
 
-// Paleta isométrica ilustración (como @datacenter.jpg): celeste fondo, grises cálidos,
-// blancos puros, amarillos mostaza, rojos y azules saturados, leds verdes/azules.
-const M = {
-  paper: mat('paper', 0xf7f9fb, 0.5, 0.03),
-  cabinetWhite: mat('cabinet_white', 0xf2f4f6, 0.42, 0.06),
-  ground: mat('ground', 0xc4e2f4, 0.96, 0),
-  concrete: mat('concrete', 0xc6ccd3, 0.8, 0.02),
-  wallMuro: mat('wall_muro', 0xc2c8cf, 0.75, 0.02),
-  wallTop: mat('wall_top', 0xe2e7ec, 0.6, 0.02),
-  grey: mat('grey', 0x8b949e, 0.72, 0.06),
-  steel: mat('steel', 0x4a6b8a, 0.45, 0.32),
-  steelLight: mat('steel_light', 0x7fb6dd, 0.42, 0.22),
-  deepSteel: mat('deep_steel', 0x23272e, 0.46, 0.24),
-  ink: mat('ink', 0x17191c, 0.48, 0.2),
-  led: mat('led', 0x9fd4ff, 0.32, 0, { emissive: 0x3fa9ff, emissiveIntensity: 1.9 }),
-  ledGreen: mat('led_green', 0x9dffb0, 0.3, 0, { emissive: 0x22dd66, emissiveIntensity: 1.7 }),
-  heat: mat('heat', 0xbfe0f5, 1, 0, { transparent: true, opacity: 0.3, depthWrite: false }),
-  water: mat('water', 0x3f8fc4, 0.2, 0.14),
-  glass: mat('glass', 0xa8d4ef, 0.05, 0.08, { transparent: true, opacity: 0.3 }),
-  glassDark: mat('glass_dark', 0x1e2a36, 0.12, 0.35),
-  wall: mat('wall', 0xb9c0c8, 0.7, 0.03),
-  wallDark: mat('wall_dark', 0x9aa3ad, 0.68, 0.04),
-  rack: mat('rack', 0x23272e, 0.36, 0.26),
-  rackWhite: mat('rack_white', 0xf2f4f6, 0.42, 0.07),
-  rackDoor: mat('rack_door', 0x141c24, 0.22, 0.3),
-  yellow: mat('yellow', 0xf2a516, 0.34, 0.12),
-  yellowDark: mat('yellow_dark', 0xc67f0a, 0.45, 0.1),
-  fire: mat('fire', 0xd63a2f, 0.34, 0.08),
-  carRed: mat('car_red', 0xe14b44, 0.26, 0.2),
-  carGlass: mat('car_glass', 0x1c2733, 0.12, 0.4),
-  fan: mat('fan', 0x2b3138, 0.4, 0.24),
-  fanBlade: mat('fan_blade', 0x3d454e, 0.42, 0.24),
-  desk: mat('desk', 0x8a6a4a, 0.5, 0.05),
-  deskTop: mat('desk_top', 0xa17e58, 0.45, 0.05),
-  deskEdge: mat('desk_edge', 0x6e5338, 0.55, 0.04),
-  chairFabric: mat('chair_fabric', 0x2a3340, 0.78, 0),
-  chairAccent: mat('chair_accent', 0x3d6a9e, 0.55, 0.05),
-  mug: mat('mug', 0xe8eef4, 0.45, 0.05),
-  mugAccent: mat('mug_accent', 0x2f7fc1, 0.4, 0.08),
-  lampWarm: mat('lamp_warm', 0xffe2b0, 0.35, 0, { emissive: 0xffb45a, emissiveIntensity: 1.4 }),
-  screenCyan: mat('screen_cyan', 0xb8f0ff, 0.2, 0, { emissive: 0x5ad4ff, emissiveIntensity: 1.8 }),
-  screenMint: mat('screen_mint', 0xb8ffe0, 0.2, 0, { emissive: 0x3ee6a0, emissiveIntensity: 1.5 }),
-  wallAccent: mat('wall_accent', 0xd8e4ee, 0.72, 0.02),
-  pdu: mat('pdu', 0xc0392b, 0.38, 0.12),
-  pduBlue: mat('pdu_blue', 0x2f7fc1, 0.38, 0.12),
-  orange: mat('orange', 0xe8642c, 0.42, 0.06),
-  roofOrange: mat('roof_orange', 0xe8642c, 0.5, 0.04),
-  asphalt: mat('asphalt', 0x5b5f66, 0.9, 0),
-  parking: mat('parking', 0x7a5c48, 0.85, 0),
-  grassGreen: mat('grass_green', 0x6fbf7f, 0.8, 0),
-  leafGreen: mat('leaf_green', 0x4d9e5f, 0.75, 0),
-  trunk: mat('trunk', 0x7a5c48, 0.8, 0),
-  screenBlue: mat('screen_blue', 0x9fd4ff, 0.25, 0, { emissive: 0x4fb0ff, emissiveIntensity: 1.5 }),
-  skin: mat('skin', 0xd9a988, 0.6, 0),
-  shirt: mat('shirt', 0x2c3a4a, 0.65, 0),
-  shirtBlue: mat('shirt_blue', 0x3a6fa8, 0.62, 0),
-  pants: mat('pants', 0x3d6a9e, 0.65, 0),
-  pantsDark: mat('pants_dark', 0x2a3544, 0.7, 0),
-  pipeRed: mat('pipe_red', 0xd63a2f, 0.36, 0.12),
-  pipeBlue: mat('pipe_blue', 0x2f7fc1, 0.36, 0.12),
-  grille: mat('grille', 0x2e343b, 0.55, 0.2),
-  sticker: mat('sticker', 0xf5c518, 0.5, 0),
-  tire: mat('tire', 0x1c1e20, 0.7, 0.05),
-  // Generador de reserva (estilo industrial beige / negro / blanco)
-  genTan: mat('gen_tan', 0xd9a56c, 0.55, 0.08),
-  genTanDark: mat('gen_tan_dark', 0xc4894f, 0.58, 0.1),
-  genTanDeep: mat('gen_tan_deep', 0xa8733f, 0.6, 0.1),
-  genSkid: mat('gen_skid', 0x1a1c1f, 0.55, 0.18),
-  genMetal: mat('gen_metal', 0x2a2e34, 0.42, 0.28),
-  genIntake: mat('gen_intake', 0xb88955, 0.48, 0.14),
-  genBtnGreen: mat('gen_btn_green', 0x3ecf6a, 0.35, 0.05, { emissive: 0x1a8a3a, emissiveIntensity: 0.35 }),
-  genBtnGrey: mat('gen_btn_grey', 0x6b737c, 0.45, 0.12),
-  genScreen: mat('gen_screen', 0x7ec8ff, 0.25, 0, { emissive: 0x3fa9ff, emissiveIntensity: 1.6 }),
-  genBlade: mat('gen_blade', 0x2e333a, 0.38, 0.45),
+const ctx = {
+  THREE, ROOT, SUB, M, mat,
+  box, cyl, line, decoBox, decoCyl, aspas,
+  placePlant, plantsReady,
+  ...layout,
 };
-// Texturas canvas: pisos oscuros con retícula, baldosa clara, puerta rack con leds, asfalto
-function canvasTex(w, h, draw, rx = 1, ry = 1) {
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  draw(cv.getContext('2d'), w, h);
-  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(rx, ry); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
-}
-{ const tex = canvasTex(256, 256, (c) => {
-    c.fillStyle = '#54585f'; c.fillRect(0, 0, 256, 256);
-    c.fillStyle = '#4c5057'; for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if ((x + y) % 2) c.fillRect(x * 64, y * 64, 64, 64);
-    c.strokeStyle = '#767c85'; c.lineWidth = 3;
-    for (let i = 0; i <= 4; i++) { c.beginPath(); c.moveTo(i * 64, 0); c.lineTo(i * 64, 256); c.stroke(); c.beginPath(); c.moveTo(0, i * 64); c.lineTo(256, i * 64); c.stroke(); }
-  }, 10, 7);
-  M.floorDark = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, metalness: 0.04 }), { name: 'floor_dark' }); }
-{ const tex = canvasTex(128, 128, (c) => {
-    c.fillStyle = '#d9dee4'; c.fillRect(0, 0, 128, 128); c.strokeStyle = '#bcc4cd'; c.lineWidth = 2;
-    for (let i = 0; i <= 4; i++) { c.beginPath(); c.moveTo(i * 32, 0); c.lineTo(i * 32, 128); c.stroke(); c.beginPath(); c.moveTo(0, i * 32); c.lineTo(128, i * 32); c.stroke(); }
-  }, 28, 18);
-  M.tile = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0 }), { name: 'tile' }); }
-{ const tex = canvasTex(128, 256, (c) => {
-    c.fillStyle = '#10161d'; c.fillRect(0, 0, 128, 256);
-    for (let r = 0; r < 12; r++) for (let col = 0; col < 4; col++) {
-      const on = (r * 7 + col * 3) % 5 !== 0;
-      c.fillStyle = on ? ((r + col) % 3 === 0 ? '#39e07a' : '#7fd8ff') : '#22303c';
-      c.fillRect(10 + col * 29, 10 + r * 20, 18, 5);
-    }
-    c.strokeStyle = '#2c3844'; c.lineWidth = 4; c.strokeRect(1, 1, 126, 254);
-  });
-  M.rackFront = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.35, metalness: 0.25, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.55 }), { name: 'rack_front' }); }
-{ const tex = canvasTex(128, 256, (c) => {
-    c.fillStyle = '#eef1f4'; c.fillRect(0, 0, 128, 256);
-    c.fillStyle = '#d5dbe2'; c.fillRect(0, 0, 128, 256);
-    for (let r = 0; r < 10; r++) { c.fillStyle = '#1b2530'; c.fillRect(12, 12 + r * 24, 104, 14); c.fillStyle = '#39e07a'; for (let k = 0; k < 6; k++) c.fillRect(16 + k * 16, 16 + r * 24, 8, 3); }
-  });
-  M.rackWhiteFront = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.45, metalness: 0.08 }), { name: 'rack_white_front' }); }
-{ const tex = canvasTex(256, 128, (c) => {
-    c.fillStyle = '#a17e58'; c.fillRect(0, 0, 256, 128);
-    for (let i = 0; i < 28; i++) {
-      c.strokeStyle = i % 3 ? 'rgba(90,60,35,0.18)' : 'rgba(200,170,130,0.22)';
-      c.lineWidth = 1 + (i % 2);
-      c.beginPath(); c.moveTo(0, 4 + i * 4.5); c.bezierCurveTo(80, 2 + i * 4.5, 160, 8 + i * 4.5, 256, 3 + i * 4.5); c.stroke();
-    }
-  }, 2, 1);
-  M.deskTop = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.48, metalness: 0.04 }), { name: 'desk_top' });
-  M.desk = Object.assign(new THREE.MeshStandardMaterial({ map: tex, color: 0xb08a62, roughness: 0.55, metalness: 0.03 }), { name: 'desk' }); }
-{ const tex = canvasTex(128, 128, (c) => {
-    c.fillStyle = '#3a4554'; c.fillRect(0, 0, 128, 128);
-    c.fillStyle = '#445062';
-    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if ((x + y) % 2) c.fillRect(x * 16, y * 16, 16, 16);
-    c.strokeStyle = 'rgba(120,150,180,0.18)'; c.lineWidth = 1;
-    for (let i = 0; i <= 8; i++) { c.beginPath(); c.moveTo(i * 16, 0); c.lineTo(i * 16, 128); c.stroke(); c.beginPath(); c.moveTo(0, i * 16); c.lineTo(128, i * 16); c.stroke(); }
-  }, 6, 3);
-  M.carpetNoc = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, metalness: 0 }), { name: 'carpet_noc' }); }
-{ const tex = canvasTex(128, 96, (c) => {
-    c.fillStyle = '#10202f'; c.fillRect(0, 0, 128, 96);
-    c.fillStyle = '#3fa9ff'; c.fillRect(8, 10, 50, 28); c.fillRect(66, 10, 54, 12);
-    c.fillStyle = '#22dd66'; c.fillRect(66, 28, 24, 10); c.fillRect(96, 28, 24, 10);
-    c.fillStyle = '#7fd8ff';
-    for (let i = 0; i < 6; i++) c.fillRect(10 + i * 9, 50, 6, 8 + (i * 5) % 28);
-    c.fillStyle = '#b5d9fd'; c.font = 'bold 10px sans-serif'; c.fillText('NOC', 10, 90);
-  });
-  M.screenDash = Object.assign(new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.85, roughness: 0.35 }), { name: 'screen_dash' }); }
-{ const tex = canvasTex(256, 256, (c) => {
-    c.fillStyle = '#2a2e34'; c.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 90; i++) {
-      const x = Math.random() * 256, y = Math.random() * 256;
-      c.strokeStyle = `rgba(${180 + Math.random() * 50},${180 + Math.random() * 40},${160 + Math.random() * 40},${0.08 + Math.random() * 0.18})`;
-      c.lineWidth = 0.6 + Math.random() * 1.4;
-      c.beginPath(); c.moveTo(x, y); c.lineTo(x + (Math.random() - 0.5) * 70, y + (Math.random() - 0.5) * 18); c.stroke();
-    }
-  });
-  M.genFanPlate = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.35 }), { name: 'gen_fan_plate' }); }
-{ const tex = canvasTex(128, 128, (c) => {
-    c.fillStyle = '#f2f4f6'; c.fillRect(0, 0, 128, 128);
-    c.fillStyle = '#f5c518'; c.beginPath();
-    c.moveTo(64, 18); c.lineTo(108, 98); c.lineTo(20, 98); c.closePath(); c.fill();
-    c.fillStyle = '#1d1f20'; c.beginPath();
-    c.moveTo(64, 34); c.lineTo(96, 90); c.lineTo(32, 90); c.closePath(); c.fill();
-    c.fillStyle = '#f5c518'; c.font = 'bold 42px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('!', 64, 72);
-  });
-  M.genHazard = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.02 }), { name: 'gen_hazard' }); }
-{ const tex = canvasTex(256, 192, (c) => {
-    c.fillStyle = '#1a1c1f'; c.fillRect(0, 0, 256, 192);
-    c.fillStyle = '#0a1018'; c.fillRect(18, 22, 110, 58);
-    c.fillStyle = '#3fa9ff'; c.fillRect(24, 28, 98, 46);
-    c.fillStyle = '#b5d9fd'; c.font = 'bold 22px monospace'; c.fillText('GEN OK', 38, 58);
-    for (let r = 0; r < 3; r++) for (let col = 0; col < 3; col++) {
-      c.fillStyle = '#3ecf6a'; c.beginPath(); c.arc(158 + col * 28, 38 + r * 26, 8, 0, Math.PI * 2); c.fill();
-    }
-    c.fillStyle = '#d63a2f'; c.beginPath(); c.arc(48, 140, 22, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(48, 140, 10, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#6b737c'; c.beginPath(); c.arc(108, 140, 14, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#c0392b'; c.beginPath(); c.arc(152, 140, 10, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#6b737c'; c.beginPath(); c.arc(192, 140, 12, 0, Math.PI * 2); c.fill();
-  });
-  M.genPanel = Object.assign(new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.45, roughness: 0.4, metalness: 0.15 }), { name: 'gen_panel' }); }
 
-// Subsystem groups — the hierarchy exported to GLB and used by the UI
-const ROOT = new THREE.Group(); ROOT.name = 'datacenter';
-const SUB = {};
-const subsystems = [
-  ['entorno', 'Entorno', 'Terreno, red eléctrica, ciudad y atmósfera que rodean al sistema'],
-  ['frontera', 'Frontera', 'Cerco perimetral y placa del sitio: qué pertenece y qué no'],
-  ['entradas', 'Entradas', 'Energía (línea + transformador), agua y fibra óptica que ingresan'],
-  ['procesos', 'Procesos', 'Sala de racks, UPS y climatización que transforman energía en cómputo'],
-  ['salidas', 'Salidas', 'Calor disipado, datos que salen por fibra, residuos electrónicos'],
-  ['retroalimentacion', 'Retroalimentación', 'Sensores y sala NOC que monitorean y corrigen'],
-  ['resiliencia', 'Resiliencia', 'Generador, tanque y segunda acometida: redundancia ante fallos'],
-];
-for (const [k, label, desc] of subsystems) { const g = new THREE.Group(); g.name = k; g.userData = { label, desc }; ROOT.add(g); SUB[k] = g; }
+buildEntorno(ctx);
+buildFrontera(ctx);
+buildProcesos(ctx);
+buildEntradas(ctx);
+buildSalidas(ctx);
+buildRetroalimentacion(ctx);
+buildResiliencia(ctx);
+buildProps(ctx);
 
-const _edgeMat = new THREE.LineBasicMaterial({ color: 0x1d2d3d, transparent: true, opacity: 0.22 });
-function addEdges(mesh, opacity = 0.22) {
-  try {
-    const e = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 30),
-      opacity === 0.22 ? _edgeMat : new THREE.LineBasicMaterial({ color: 0x1d2d3d, transparent: true, opacity }));
-    e.raycast = () => {}; mesh.add(e);
-  } catch (_) {}
-  return mesh;
-}
-const _noEdge = /(_led|_luz|servidor_|marca_|riel_|hilo|pulso|rayo|calor_|humo|lluvia|nube_|ventana_)/;
-const box = (parent, name, m, w, h, d, x, y, z, ry = 0, edge = null) => {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
-  mesh.name = name; mesh.position.set(x, y, z); mesh.rotation.y = ry; parent.add(mesh);
-  // Edges solo en volúmenes grandes (edificios/salas); racks y deco fina no duplican draw calls.
-  const wantEdge = edge !== null ? edge : (Math.min(w, h, d) > 0.2 && Math.max(w, h, d) > 1.4 && !_noEdge.test(name));
-  if (wantEdge) addEdges(mesh, Math.max(w, h, d) > 3 ? 0.3 : 0.2);
-  return mesh;
-};
-const cyl = (parent, name, m, r, h, x, y, z, seg = 16, rot = null) => {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), m);
-  mesh.name = name; mesh.position.set(x, y, z); if (rot) mesh.rotation.set(...rot); parent.add(mesh); return mesh;
-};
-const line = (parent, name, m, a, b, r = 0.03) => {
-  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b);
-  const len = A.distanceTo(B), mid = A.clone().add(B).multiplyScalar(0.5);
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), m);
-  mesh.name = name; mesh.position.copy(mid);
-  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize());
-  parent.add(mesh); return mesh;
-};
-// deco: detalle visual extra. Lleva "deco" en el nombre para que el deterioro,
-// el picking y el resaltado lo ignoren (ver noDet / noPick).
-const decoBox = (parent, name, m, w, h, d, x, y, z, ry = 0, edge = false) => {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
-  mesh.name = `deco_${name}`; mesh.position.set(x, y, z); mesh.rotation.y = ry;
-  parent.add(mesh);
-  if (edge) addEdges(mesh, 0.18);
-  return mesh;
-};
-const decoCyl = (parent, name, m, r, h, x, y, z, seg = 12, rot = null) => {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), m);
-  mesh.name = `deco_${name}`; mesh.position.set(x, y, z); if (rot) mesh.rotation.set(...rot);
-  parent.add(mesh); return mesh;
-};
-// Aspas para ventiladores: hijas del ventilador para que giren con él
-function aspas(parentFan, tag, r = 0.34, n = 5) {
-  for (let i = 0; i < n; i++) {
-    const b = new THREE.Mesh(new THREE.BoxGeometry(r, 0.02, 0.1), M.fanBlade);
-    b.name = `deco_${tag}_aspa_${i + 1}`; b.position.y = 0.03;
-    const piv = new THREE.Group(); piv.rotation.y = (i / n) * Math.PI * 2; piv.add(b);
-    b.position.x = r * 0.45; b.rotation.y = 0.5; parentFan.add(piv);
-  }
-  const hub = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), M.deepSteel);
-  hub.name = `deco_${tag}_hub`; hub.position.y = 0.04; parentFan.add(hub);
-}
-/** Generador diésel estilo referencia: skid negro, cuerpo beige, ventilador axial, cabina blanca y panel. */
-function buildGenerator(parent, {
-  bodyName, fanName, tag, x, y, z, intakes = 3, named = true, withControls = true,
-}) {
-  const addB = named ? box : decoBox;
-  const addC = named ? cyl : decoCyl;
-  const yBase = y + 0.06;
-  // Skid / base negra
-  decoBox(parent, `${tag}_skid`, M.genSkid, 3.15, 0.1, 1.22, x, yBase, z, 0, true);
-  decoBox(parent, `${tag}_skid_labio`, M.ink, 3.18, 0.03, 1.26, x, yBase - 0.04, z);
-  // Bloque motor central (beige) — cuerpo principal con nombre fijo
-  const bodyH = 0.72, bodyY = yBase + 0.05 + bodyH / 2;
-  addB(parent, bodyName, M.genTan, 1.6, bodyH, 1.0, x - 0.12, bodyY, z, 0, true);
-  // Aletas verticales gruesas (lado inferior del motor) + horizontales en el flanco
-  for (let i = 0; i < 7; i++) {
-    decoBox(parent, `${tag}_aleta_v_${i}`, M.genTanDark, 0.08, 0.42, 0.06, x - 0.7 + i * 0.2, yBase + 0.32, z + 0.5);
-    decoBox(parent, `${tag}_aleta_vb_${i}`, M.genTanDark, 0.08, 0.42, 0.06, x - 0.7 + i * 0.2, yBase + 0.32, z - 0.5);
-  }
-  for (let i = 0; i < 5; i++) {
-    decoBox(parent, `${tag}_aleta_h_${i}`, M.genTanDeep, 1.4, 0.04, 0.035, x - 0.15, yBase + 0.55 + i * 0.08, z + 0.515);
-  }
-  // Bloque superior del motor + tomas de aire (bocas hacia el ventilador)
-  decoBox(parent, `${tag}_tapa`, M.genTan, 1.4, 0.26, 0.82, x - 0.15, yBase + 0.96, z, 0, true);
-  for (let k = 0; k < intakes; k++) {
-    const ix = x - 0.65 + k * (1.05 / Math.max(intakes - 1, 1));
-    decoCyl(parent, `${tag}_intake_${k}`, M.genIntake, 0.115, 0.36, ix, yBase + 1.2, z, 14, [0, 0, Math.PI / 2]);
-    decoCyl(parent, `${tag}_intake_boca_${k}`, M.genTanDeep, 0.09, 0.06, ix - 0.17, yBase + 1.2, z, 14, [0, 0, Math.PI / 2]);
-    decoCyl(parent, `${tag}_intake_hueco_${k}`, M.ink, 0.058, 0.04, ix - 0.2, yBase + 1.2, z, 12, [0, 0, Math.PI / 2]);
-  }
-  // Puente entre motor y carcasa alta
-  decoBox(parent, `${tag}_puente`, M.genTan, 0.35, 0.62, 0.92, x + 0.72, yBase + 0.42, z);
-  // Carcasa trasera alta (lado panel / alternador)
-  const cabX = x + 1.12, cabH = 1.32, cabY = yBase + 0.05 + cabH / 2;
-  decoBox(parent, `${tag}_cabina`, M.genTan, 0.92, cabH, 1.02, cabX, cabY, z, 0, true);
-  // Panel de acceso lateral atornillado
-  decoBox(parent, `${tag}_tapa_lat`, M.genTanDark, 0.02, 0.58, 0.64, cabX, cabY - 0.08, z + 0.52);
-  [[-0.25, 0.22], [0.25, 0.22], [-0.25, -0.22], [0.25, -0.22]].forEach(([dz, dy], i) => {
-    decoCyl(parent, `${tag}_tornillo_${i}`, M.genMetal, 0.025, 0.03, cabX + 0.02, cabY - 0.08 + dy, z + 0.52 + dz, 8, [0, 0, Math.PI / 2]);
-  });
-  // Gabinete eléctrico blanco con triángulo de peligro
-  decoBox(parent, `${tag}_elec`, M.cabinetWhite, 0.26, 1.12, 0.48, cabX + 0.05, yBase + 0.62, z - 0.72, 0, true);
-  decoBox(parent, `${tag}_elec_manija`, M.ink, 0.035, 0.1, 0.055, cabX + 0.05, yBase + 0.58, z - 0.97);
-  decoBox(parent, `${tag}_hazard`, M.genHazard, 0.2, 0.2, 0.015, cabX + 0.05, yBase + 0.95, z - 0.975);
-  // Panel de control (cara +X)
-  if (withControls) {
-    decoBox(parent, `${tag}_panel_fondo`, M.ink, 0.04, 0.48, 0.58, cabX + 0.47, yBase + 0.88, z);
-    decoBox(parent, `${tag}_panel`, M.genPanel, 0.015, 0.4, 0.52, cabX + 0.495, yBase + 0.88, z);
-    decoBox(parent, `${tag}_lcd`, M.genScreen, 0.012, 0.1, 0.18, cabX + 0.51, yBase + 0.98, z - 0.08);
-    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
-      decoCyl(parent, `${tag}_btn_g_${r}_${c}`, M.genBtnGreen, 0.02, 0.018, cabX + 0.51, yBase + 1.05 - r * 0.065, z + 0.12 + c * 0.065, 10, [0, 0, Math.PI / 2]);
-    }
-    decoCyl(parent, `${tag}_estop`, M.fire, 0.055, 0.045, cabX + 0.515, yBase + 0.72, z - 0.14, 14, [0, 0, Math.PI / 2]);
-    decoCyl(parent, `${tag}_btn_1`, M.genBtnGrey, 0.03, 0.022, cabX + 0.515, yBase + 0.72, z + 0.02, 10, [0, 0, Math.PI / 2]);
-    decoCyl(parent, `${tag}_btn_2`, M.fire, 0.022, 0.02, cabX + 0.515, yBase + 0.72, z + 0.14, 10, [0, 0, Math.PI / 2]);
-  }
-  // Conjunto ventilador axial (cara −X): placa con orificio circular + aspas pétalo
-  const fx = x - 1.48, fy = yBase + 0.58;
-  const plate = 1.18, holeR = 0.5, half = plate / 2, rim = half - holeR;
-  // Marco cuadrado alrededor del orificio (no placa sólida que tape las aspas)
-  decoBox(parent, `${tag}_fan_marco_sup`, M.genFanPlate, 0.08, rim, plate, fx, fy + holeR + rim / 2, z);
-  decoBox(parent, `${tag}_fan_marco_inf`, M.genFanPlate, 0.08, rim, plate, fx, fy - holeR - rim / 2, z);
-  decoBox(parent, `${tag}_fan_marco_izq`, M.genFanPlate, 0.08, holeR * 2, rim, fx, fy, z - holeR - rim / 2);
-  decoBox(parent, `${tag}_fan_marco_der`, M.genFanPlate, 0.08, holeR * 2, rim, fx, fy, z + holeR + rim / 2);
-  [[-0.48, -0.48], [0.48, -0.48], [-0.48, 0.48], [0.48, 0.48]].forEach(([dz, dy], i) => {
-    decoCyl(parent, `${tag}_fan_perno_${i}`, M.genMetal, 0.035, 0.05, fx - 0.03, fy + dy, z + dz, 8, [0, 0, Math.PI / 2]);
-    decoCyl(parent, `${tag}_fan_agujero_${i}`, M.ink, 0.02, 0.035, fx - 0.055, fy + dy, z + dz, 8, [0, 0, Math.PI / 2]);
-  });
-  // Fondo del orificio + labio circular
-  decoCyl(parent, `${tag}_fan_fondo`, M.ink, holeR - 0.02, 0.03, fx + 0.04, fy, z, 20, [0, 0, Math.PI / 2]);
-  {
-    const aro = new THREE.Mesh(new THREE.TorusGeometry(holeR, 0.028, 6, 24), M.genMetal);
-    aro.name = `deco_${tag}_fan_aro`; aro.position.set(fx - 0.01, fy, z);
-    aro.rotation.y = Math.PI / 2; parent.add(aro);
-  }
-  // Aspa estilo referencia: pétalo alargado, más estrecho, con pitch
-  if (!buildGenerator._bladeGeo) {
-    const sh = new THREE.Shape();
-    // base cerca del hub → punta afilada (como aspa axial industrial)
-    sh.moveTo(0.01, 0.12);
-    sh.lineTo(0.045, 0.14);
-    sh.quadraticCurveTo(0.055, 0.26, 0.04, 0.38);
-    sh.quadraticCurveTo(0.025, 0.46, 0.0, 0.485);
-    sh.quadraticCurveTo(-0.02, 0.46, -0.035, 0.38);
-    sh.quadraticCurveTo(-0.05, 0.26, -0.04, 0.14);
-    sh.lineTo(-0.01, 0.12);
-    sh.closePath();
-    buildGenerator._bladeGeo = new THREE.ExtrudeGeometry(sh, { depth: 0.028, bevelEnabled: false });
-    buildGenerator._bladeGeo.translate(0, 0, -0.014);
-    buildGenerator._bladeGeo.rotateY(Math.PI / 2);
-  }
-  // Spinner: eje local X = eje del ventilador
-  const spinner = new THREE.Group();
-  spinner.position.set(fx - 0.05, fy, z);
-  parent.add(spinner);
-  const hubMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.07, 12), M.fan);
-  hubMesh.name = named ? fanName : `deco_${fanName}`;
-  hubMesh.rotation.z = Math.PI / 2;
-  spinner.add(hubMesh);
-  for (let i = 0; i < 8; i++) {
-    const piv = new THREE.Group();
-    piv.rotation.x = (i / 8) * Math.PI * 2;
-    spinner.add(piv);
-    const blade = new THREE.Mesh(buildGenerator._bladeGeo, M.genBlade);
-    blade.name = `deco_${tag}_aspa_${i}`;
-    blade.rotation.y = 0.55; // pitch visible (giro sobre eje radial Y: no saca la punta del plano)
-    blade.rotation.z = 0;
-    piv.add(blade);
-  }
-  const hubRing = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 6, 16), M.genMetal);
-  hubRing.name = `deco_${tag}_hubring`; hubRing.rotation.y = Math.PI / 2; spinner.add(hubRing);
-  const hubCap = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.045, 12), M.genMetal);
-  hubCap.name = `deco_${tag}_hubcap`; hubCap.rotation.z = Math.PI / 2; hubCap.position.x = -0.035; spinner.add(hubCap);
-  const hubNose = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 8), M.ink);
-  hubNose.name = `deco_${tag}_hubnose`; hubNose.scale.set(0.65, 1, 1); hubNose.position.x = -0.06; spinner.add(hubNose);
-  return hubMesh;
-}
-function plantaMaceta(parent, tag, x, y, z) {
-  decoCyl(parent, `${tag}_maceta`, M.orange, 0.12, 0.16, x, y + 0.08, z, 10);
-  decoCyl(parent, `${tag}_tierra`, M.trunk, 0.1, 0.04, x, y + 0.16, z, 10);
-  decoCyl(parent, `${tag}_tallo`, M.trunk, 0.02, 0.22, x, y + 0.28, z, 6);
-  decoBox(parent, `${tag}_hoja_1`, M.leafGreen, 0.22, 0.04, 0.12, x + 0.06, y + 0.4, z, 0.4);
-  decoBox(parent, `${tag}_hoja_2`, M.grassGreen, 0.18, 0.035, 0.1, x - 0.05, y + 0.36, z + 0.04, -0.5);
-  decoBox(parent, `${tag}_hoja_3`, M.leafGreen, 0.14, 0.03, 0.08, x, y + 0.46, z - 0.04, 0.2);
-}
+const {
+  E, P, I, R, S,
+  rayo, faroles, ciudadNueva,
+  filas, filasIniciales, rows, perRow, rackH, fy,
+  lucesNoc, humo, lamparas, luzSala, luzGen,
+  termo, bladeRef, rackRef, chipRef,
+  W, D, y0, HX, HZ, HW, HD, RY,
+  UX, UZ, TX, TZ, WX, WZ, MX, MZ, NX, NZ, chillerPos,
+} = ctx;
 
-// ===== Layout del campus (un solo bloque; las animaciones leen estos valores) =====
-const W = 42, D = 28, T = 0.48;
-const y0 = 0.2 + T;
-const HX = -7, HZ = -4.2, HW = 14.5, HD = 10.4, HH = 3.45, WT = 0.12;
-const RY = y0 + HH + 0.02;
-const UX = 10.2, UZ = -2.2;
-const TX = 15.2, TZ = -6.4;
-const WX = -18.8, WZ = -6.5;
-const MX = -16.5, MZ = 4.8;
-const NX = 2.2, NZ = 7.4;
-const GX = 15.0, GZ = 3.2;
-const chillerPos = [
-  [HX - 4.2, RY + 0.42, HZ - 1.6],
-  [HX - 1.4, RY + 0.42, HZ - 1.6],
-  [HX + 1.4, RY + 0.42, HZ - 1.6],
-  [HX + 4.0, RY + 0.42, HZ + 3.0],
-];
-
-// ===== ENTORNO =====
-const E = SUB.entorno;
-box(E, 'terreno', M.ground, 70, 0.2, 50, 0, 0.1, 0);
-M.rayo = mat('rayo', 0xeef6ff, 0.2, 0, { emissive: 0xb5d9fd, emissiveIntensity: 2, transparent: true, opacity: 0 });
-const rayo = new THREE.Group(); rayo.name = 'rayo'; rayo.visible = false; E.add(rayo);
-{ const pts = [[30, 30, -14], [31.5, 24, -13], [29.5, 18, -14.5], [30.8, 13, -13.6], [30, 9, -14]];
-  for (let i = 0; i < pts.length - 1; i++) line(rayo, `rayo_seg_${i + 1}`, M.rayo, pts[i], pts[i + 1], 0.09);
-  line(rayo, 'rayo_rama', M.rayo, [29.5, 18, -14.5], [26.5, 14, -16.5], 0.05); }
-box(E, 'via_publica', M.asphalt, 70, 0.03, 3.6, 0, 0.215, 19.6);
-// línea central segmentada (deco, no interfiere)
-for (let x = -34; x < 34; x += 2.4) decoBox(E, `via_linea_${x}`, M.paper, 1.2, 0.012, 0.12, x, 0.235, 19.6);
-M.farol = mat('farol', 0xeef6ff, 0.3, 0, { emissive: 0xb5d9fd, emissiveIntensity: 1.6 });
-const faroles = [];
-[-30, -20, -10, 0, 10, 20, 30].forEach((x, i) => {
-  box(E, `farol_${i + 1}_poste`, M.deepSteel, 0.12, 4.2, 0.12, x, 0.2 + 2.1, 21.8);
-  box(E, `farol_${i + 1}_brazo`, M.deepSteel, 0.08, 0.08, 1.1, x, 0.2 + 4.15, 21.35);
-  box(E, `farol_${i + 1}_lampara`, M.farol, 0.46, 0.1, 0.28, x, 0.2 + 4.1, 20.85);
-  decoBox(E, `farol_cap_${i + 1}`, M.deepSteel, 0.54, 0.06, 0.34, x, 0.2 + 4.18, 20.85);
-  // Una PointLight cada dos faroles: el resto se ve por emisión del mesh.
-  if (i % 2 === 0) {
-    const pl = new THREE.PointLight(0xb5d9fd, 0, 14, 1.6); pl.position.set(x, 0.2 + 3.85, 20.8); pl.name = `farol_${i + 1}_luz`; E.add(pl); faroles.push(pl);
-  }
-});
-const tower = (x, z, n) => {
-  box(E, `${n}_mastil`, M.deepSteel, 0.26, 9, 0.26, x, 4.7, z);
-  box(E, `${n}_cruceta`, M.deepSteel, 3.0, 0.14, 0.14, x, 8.6, z);
-  box(E, `${n}_cruceta_2`, M.deepSteel, 2.2, 0.14, 0.14, x, 7.4, z);
-  // aisladores deco
-  [-1.2, -0.6, 0, 0.6, 1.2].forEach((o, k) => decoCyl(E, `${n}_aislador_${k}`, M.cabinetWhite, 0.07, 0.3, x + o, 8.45, z, 8));
-  decoBox(E, `${n}_base`, M.concrete, 1.2, 0.3, 1.2, x, 0.35, z, 0, true);
-};
-tower(30, -14, 'torre_at_1'); tower(30, 2, 'torre_at_2');
-line(E, 'linea_at', M.ink, [30, 8.7, -14], [30, 8.7, 2]);
-box(E, 'ciudad_1', M.cabinetWhite, 5, 7, 5, -28, 3.7, -16);
-box(E, 'ciudad_2', M.cabinetWhite, 4, 10, 4, -22, 5.2, -19);
-box(E, 'ciudad_3', M.cabinetWhite, 6, 5, 4, -30, 2.7, -8);
-// ventanas deco en edificios base (ilustración como la referencia)
-[['ciudad_1', -28, 3.7, -16, 5, 7, 5], ['ciudad_2', -22, 5.2, -19, 4, 10, 4], ['ciudad_3', -30, 2.7, -8, 6, 5, 4]].forEach(([tag, bx, by, bz, w, h, d], bi) => {
-  for (let f = 0; f < Math.floor(h / 1.3); f++) for (let cc = 0; cc < Math.floor(w / 1.1); cc++)
-    decoBox(E, `ciudad_win_${bi}_${f}_${cc}`, M.screenBlue, 0.55, 0.6, 0.04, bx - w / 2 + 0.7 + cc * 1.1, 0.2 + 1.1 + f * 1.3, bz + d / 2 + 0.02);
-  decoBox(E, `ciudad_roof_${bi}`, M.wallMuro, w + 0.3, 0.18, d + 0.3, bx, 0.2 + h + 0.09, bz, 0, true);
-});
-const ciudadNueva = [[-33, 8, 4, -14, 4], [-25, 12, 4, -12, 4], [-32, 6, 5, -2, 5], [-20, 9, 3.5, -22, 3.5], [-27, 14, 4, -22, 4], [-33, 9, 4, -20, 4], [-36, 6, 4, -8, 4], [-26, 16, 3.5, -4, 3.5]]
-  .map(([x, h, w, z, d], i) => { const b = box(E, `ciudad_nueva_${i + 1}`, M.cabinetWhite, w, h, d, x, 0.2 + h / 2, z); b.visible = false; b.userData.h = h; return b; });
-// Fachada con luces para los edificios extra (hijas del edificio: crecen con él
-// durante la animación y se ven iluminadas como el resto de la ciudad)
-ciudadNueva.forEach((b, i) => {
-  const p = b.geometry.parameters, w = p.width, h = p.height, d = p.depth;
-  const cols = Math.max(2, Math.floor(w / 1.1)), floors = Math.max(2, Math.floor(h / 1.3));
-  for (let f = 0; f < floors; f++) for (let c = 0; c < cols; c++) {
-    const win = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.6, 0.04), M.screenBlue);
-    win.name = `deco_ciudad_nueva_win_${i}_${f}_${c}`;
-    win.position.set(-w / 2 + 0.7 + c * ((w - 1.1) / Math.max(cols - 1, 1)), -h / 2 + 1.1 + f * 1.3, d / 2 + 0.02);
-    b.add(win);
-  }
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.18, d + 0.3), M.wallMuro);
-  roof.name = `deco_ciudad_nueva_roof_${i}`; roof.position.set(0, h / 2 + 0.09, 0); roof.castShadow = true; b.add(roof);
-});
-// Vegetación GLB (models/) — normalizada a altura 1, pies en y=0 del grupo
-const { GLTFLoader } = await import('./vendor/loaders/GLTFLoader.js');
-const gltfLoader = new GLTFLoader();
-const PLANT_FILES = {
-  tree1: 'models/tree1.glb',
-  tree2: 'models/tree2.glb',
-  tree3: 'models/tree3.glb',
-  tree4: 'models/tree.4.glb',
-  tree5: 'models/tree5.glb',
-  bush1: 'models/bush1.glb',
-  extinguisher: 'models/fire-extinguisher.glb',
-  desk: 'models/desk.glb',
-  dumpster: 'models/dumpster.glb',
-};
-const _plantBox = new THREE.Box3();
-const _plantSize = new THREE.Vector3();
-function normalizePlant(scene) {
-  const root = new THREE.Group();
-  root.add(scene);
-  scene.traverse((o) => {
-    if (!o.isMesh) return;
-    o.castShadow = true;
-    o.receiveShadow = false;
-    const mats = Array.isArray(o.material) ? o.material : [o.material];
-    for (const m of mats) {
-      if (!m) continue;
-      m.flatShading = true;
-      m.metalness = 0;
-      if (typeof m.roughness === 'number') m.roughness = Math.max(m.roughness, 0.72);
-      m.needsUpdate = true;
-    }
-  });
-  _plantBox.setFromObject(root);
-  _plantBox.getSize(_plantSize);
-  const s = 1 / Math.max(_plantSize.y, 1e-4);
-  scene.scale.multiplyScalar(s);
-  _plantBox.setFromObject(root);
-  scene.position.x -= (_plantBox.min.x + _plantBox.max.x) * 0.5;
-  scene.position.z -= (_plantBox.min.z + _plantBox.max.z) * 0.5;
-  scene.position.y -= _plantBox.min.y;
-  return root;
-}
-const plantTemplates = {};
-const plantQueue = [];
-function placePlant(key, name, x, z, height, ry = 0, parent = E, y = 0.2) {
-  const tpl = plantTemplates[key];
-  if (!tpl) {
-    plantQueue.push({ key, name, x, z, height, ry, parent, y });
-    return null;
-  }
-  const inst = tpl.clone(true);
-  inst.name = name;
-  let mi = 0;
-  inst.traverse((o) => {
-    if (!o.isMesh) return;
-    mi += 1;
-    o.name = `${name}_mesh_${mi}`;
-    o.castShadow = true;
-    o.receiveShadow = false;
-  });
-  inst.scale.setScalar(height);
-  inst.position.set(x, y, z);
-  inst.rotation.y = ry;
-  parent.add(inst);
-  return inst;
-}
-// Carga diferida: la escena procedural monta ya; GLBs llegan sin bloquear el primer frame.
-const plantsReady = Promise.all(Object.entries(PLANT_FILES).map(async ([key, url]) => {
-  const gltf = await gltfLoader.loadAsync(url);
-  plantTemplates[key] = normalizePlant(gltf.scene);
-})).then(() => {
-  const pending = plantQueue.splice(0, plantQueue.length);
-  for (const p of pending) placePlant(p.key, p.name, p.x, p.z, p.height, p.ry, p.parent, p.y);
-});
-void plantsReady.catch((err) => console.error('GLB plant/props', err));
-// Paisajismo ligero: pocos grupos que enmarcan el sitio (sin saturar el perímetro)
-// [x, z, modelo, altura_m, rotY]
-const plantings = [
-  // Sur — solo flancos del portón (hueco |x|<6)
-  [-17.5, 16.2, 'tree4', 3.8, 0.4],
-  [-15.8, 15.6, 'bush1', 0.8, 1.0],
-  [-14.5, 16.4, 'tree1', 3.1, -0.5],
-  [14.2, 16.3, 'tree5', 3.3, 0.6],
-  [16.0, 15.7, 'bush1', 0.75, -0.8],
-  [17.8, 16.2, 'tree3', 3.0, 0.2],
-  // Norte — dos acentos, no una hilera
-  [-10.5, -16.8, 'tree4', 4.0, 0.3],
-  [-8.8, -17.2, 'bush1', 0.85, 0.9],
-  [8.5, -16.9, 'tree2', 3.6, -0.4],
-  [10.2, -16.5, 'bush1', 0.7, 1.2],
-  // Suroeste — un solo grupo hacia la ciudad
-  [-26.5, 14.5, 'tree4', 3.9, 0.7],
-  [-24.8, 15.8, 'tree1', 3.2, -0.3],
-  [-25.5, 13.2, 'bush1', 0.9, 0.5],
-  // Noroeste — un árbol junto a edificios
-  [-24.0, -4.5, 'tree5', 3.5, 0.55],
-  [-22.8, -3.2, 'bush1', 0.8, -1.0],
-  // Este — lejos de las torres (x≈30), un grupo limpio
-  [24.5, 8.0, 'tree3', 3.15, -0.6],
-  [26.0, 9.5, 'bush1', 0.78, 0.4],
-  [25.2, -6.5, 'tree2', 3.5, 0.25],
-];
-plantings.forEach(([x, z, key, h, ry], i) => {
-  const isBush = key.startsWith('bush');
-  placePlant(key, isBush ? `deco_arbusto_${i + 1}` : `arbol_${i + 1}`, x, z, h, ry);
-});
-
-// ===== FRONTERA =====
-const F = SUB.frontera;
-box(F, 'placa_sitio', M.concrete, W, T, D, 0, 0.2 + T / 2, 0);
-// borde superior claro tipo maqueta
-decoBox(F, 'placa_borde_norte', M.wallTop, W + 0.25, 0.1, 0.25, 0, 0.2 + T + 0.02, -D / 2);
-decoBox(F, 'placa_borde_sur', M.wallTop, W + 0.25, 0.1, 0.25, 0, 0.2 + T + 0.02, D / 2);
-decoBox(F, 'placa_borde_oeste', M.wallTop, 0.25, 0.1, D + 0.25, -W / 2, 0.2 + T + 0.02, 0);
-decoBox(F, 'placa_borde_este', M.wallTop, 0.25, 0.1, D + 0.25, W / 2, 0.2 + T + 0.02, 0);
-box(F, 'piso_baldosas', M.tile, W - 0.35, 0.02, D - 0.35, 0, y0 + 0.011, 0);
-// Piso oscuro del edificio (como la referencia): gran losa gris pizarra
-decoBox(F, 'piso_edificio_deco', M.floorDark, 34, 0.03, 20, 2.5, y0 + 0.02, -0.6);
-const fenceH = 1.45, inset = 0.45;
-const px = W / 2 - inset, pz = D / 2 - inset;
-const postsAlong = (from, to, fixed, axis, n, tag) => {
-  for (let i = 0; i <= n; i++) {
-    const t = from + (to - from) * i / n;
-    const [x, z] = axis === 'x' ? [t, fixed] : [fixed, t];
-    if (tag === 'sur' && Math.abs(x) < 3) continue;
-    box(F, `cerco_${tag}_poste_${i + 1}`, M.paper, 0.08, fenceH, 0.08, x, y0 + fenceH / 2, z);
-  }
-};
-postsAlong(-px, px, -pz, 'x', 18, 'norte'); postsAlong(-px, px, pz, 'x', 18, 'sur');
-postsAlong(-pz, pz, -px, 'z', 12, 'oeste'); postsAlong(-pz, pz, px, 'z', 12, 'este');
-[0.45, 1.0, 1.4].forEach((h, i) => {
-  box(F, `cerco_norte_riel_${i + 1}`, M.steelLight, W - 2 * inset, 0.03, 0.03, 0, y0 + h, -pz);
-  box(F, `cerco_sur_riel_${i + 1}_a`, M.steelLight, (W - 2 * inset) / 2 - 3, 0.03, 0.03, -(W - 2 * inset) / 4 - 1.5, y0 + h, pz);
-  box(F, `cerco_sur_riel_${i + 1}_b`, M.steelLight, (W - 2 * inset) / 2 - 3, 0.03, 0.03, (W - 2 * inset) / 4 + 1.5, y0 + h, pz);
-  box(F, `cerco_oeste_riel_${i + 1}`, M.steelLight, 0.03, 0.03, D - 2 * inset, -px, y0 + h, 0);
-  box(F, `cerco_este_riel_${i + 1}`, M.steelLight, 0.03, 0.03, D - 2 * inset, px, y0 + h, 0);
-});
-box(F, 'porton', M.cabinetWhite, 5.6, 1.35, 0.06, 0, y0 + 0.68, pz);
-// barrotes deco del portón
-for (let i = -5; i <= 5; i++) decoBox(F, `porton_barrote_${i}`, M.steelLight, 0.06, 1.1, 0.04, i * 0.48, y0 + 0.68, pz + 0.02);
-decoBox(F, 'porton_riel', M.deepSteel, 6.2, 0.08, 0.12, 0, y0 + 0.06, pz);
-[[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) => {
-  const mx = sx * (W / 2 - 0.22), mz = sz * (D / 2 - 0.22);
-  box(F, `marca_${i + 1}_h`, M.steelLight, 0.42, 0.02, 0.035, mx, y0 + 0.02, mz);
-  box(F, `marca_${i + 1}_v`, M.steelLight, 0.035, 0.02, 0.42, mx, y0 + 0.021, mz);
-});
-
-// ===== PROCESOS: pabellón de cristal + hall de racks =====
-const P = SUB.procesos;
-// Muros tabique del edificio (estilo maqueta de la referencia: gris claro, coronación blanca)
-const muroH = 1.5;
-decoBox(P, 'muro_perim_norte', M.wallMuro, 34, muroH, 0.35, 2.5, y0 + muroH / 2, -10.5, 0, true);
-decoBox(P, 'muro_perim_sur', M.wallMuro, 34, muroH, 0.35, 2.5, y0 + muroH / 2, 9.2, 0, true);
-decoBox(P, 'muro_perim_este', M.wallMuro, 0.35, muroH, 19.9, 19.5, y0 + muroH / 2, -0.72, 0, true);
-decoBox(P, 'muro_perim_oeste', M.wallMuro, 0.35, muroH, 19.9, -14.5, y0 + muroH / 2, -0.72, 0, true);
-// particiones interiores que crean las salas de la referencia
-decoBox(P, 'tabique_1', M.wallMuro, 0.3, muroH, 9.5, -2.2, y0 + muroH / 2, -5.8, 0, true);
-decoBox(P, 'tabique_2', M.wallMuro, 12, muroH, 0.3, 6.5, y0 + muroH / 2, -6.2, 0, true);
-decoBox(P, 'tabique_3', M.wallMuro, 0.3, muroH, 15.6, 7.2, y0 + muroH / 2, 1.4, 0, true);
-decoBox(P, 'tabique_4', M.wallMuro, 11.5, muroH, 0.3, 1.6, y0 + muroH / 2, 2.8, 0, true);
-[[-14.5, -10.5], [19.5, -10.5], [-14.5, 9.2], [19.5, 9.2]].forEach(([x, z], i) =>
-  decoBox(P, `pilar_edificio_${i}`, M.cabinetWhite, 0.5, muroH + 0.15, 0.5, x, y0 + (muroH + 0.15) / 2, z, 0, true));
-box(P, 'sala_muro_norte', M.glass, HW, HH, WT, HX, y0 + HH / 2, HZ - HD / 2 + WT / 2);
-box(P, 'sala_muro_oeste', M.glass, WT, HH, HD, HX - HW / 2 + WT / 2, y0 + HH / 2, HZ);
-box(P, 'sala_muro_este', M.glass, WT, HH, HD, HX + HW / 2 - WT / 2, y0 + HH / 2, HZ);
-box(P, 'sala_antepecho_sur', M.cabinetWhite, HW, 0.28, WT, HX, y0 + 0.14, HZ + HD / 2 - WT / 2);
-box(P, 'sala_marco_norte', M.cabinetWhite, HW + 0.16, 0.1, WT + 0.04, HX, y0 + HH + 0.02, HZ - HD / 2);
-box(P, 'sala_marco_oeste', M.cabinetWhite, WT + 0.04, 0.1, HD + 0.16, HX - HW / 2, y0 + HH + 0.02, HZ);
-box(P, 'sala_marco_este', M.cabinetWhite, WT + 0.04, 0.1, HD + 0.16, HX + HW / 2, y0 + HH + 0.02, HZ);
-box(P, 'piso_tecnico', M.floorDark, HW - 2 * WT, 0.06, HD - 2 * WT, HX, y0 + 0.03, HZ);
-box(P, 'cubierta', M.cabinetWhite, HW + 0.7, 0.16, HD + 0.7, HX, RY + 0.08, HZ);
-// pretil de cubierta + rejilla perimetral deco
-decoBox(P, 'cubierta_petril_n', M.cabinetWhite, HW + 0.7, 0.22, 0.08, HX, RY + 0.25, HZ - HD / 2 - 0.31);
-decoBox(P, 'cubierta_petril_s', M.cabinetWhite, HW + 0.7, 0.22, 0.08, HX, RY + 0.25, HZ + HD / 2 + 0.31);
-[[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) =>
-  box(P, `columna_${i + 1}`, M.paper, 0.22, HH, 0.22, HX + sx * (HW / 2 + 0.12), y0 + HH / 2, HZ + sz * (HD / 2 + 0.12)));
-const rackW = 0.58, rackH = 2.05, rackD = 0.95, gap = 0.08, rows = 6, filasIniciales = 2, perRow = 8, rowPitch = 1.52, rackPitch = rackW + gap;
-const fy = y0 + 0.12;
-const filas = [], zFila = r => HZ - HD / 2 + 1.15 + r * rowPitch;
-for (let r = 0; r < rows; r++) {
-  const fila = new THREE.Group(); fila.name = `fila_${r + 1}`; P.add(fila); filas.push(fila);
-  const z = zFila(r);
-  for (let c = 0; c < perRow; c++) {
-    const x = HX - ((perRow - 1) * rackPitch) / 2 + c * rackPitch;
-    const rack = new THREE.Group(); rack.name = `rack_${r + 1}_${c + 1}`; fila.add(rack);
-    box(rack, `${rack.name}_gabinete`, M.rack, rackW, rackH, rackD, x, fy + rackH / 2, z);
-    for (let s = 0; s < 6; s++) {
-      box(rack, `${rack.name}_servidor_${s + 1}`, M.ink, rackW - 0.1, 0.2, 0.02, x, fy + 0.32 + s * 0.28, z + rackD / 2 + 0.011);
-      box(rack, `${rack.name}_servidor_${s + 1}_led`, M.led, 0.04, 0.03, 0.01, x + 0.16, fy + 0.32 + s * 0.28, z + rackD / 2 + 0.024);
-      box(rack, `${rack.name}_servidor_${s + 1}_led2`, M.led, 0.025, 0.025, 0.01, x + 0.1, fy + 0.32 + s * 0.28, z + rackD / 2 + 0.024);
-    }
-    // puerta frontal con textura de leds (ilustración) + zócalo + tirador
-    decoBox(rack, `rack_${r + 1}_${c + 1}_puerta`, M.rackFront, rackW - 0.06, rackH - 0.12, 0.025, x, fy + rackH / 2, z + rackD / 2 + 0.012);
-    decoBox(rack, `rack_${r + 1}_${c + 1}_zocalo`, M.deepSteel, rackW, 0.08, rackD, x, fy + 0.04, z);
-    decoBox(rack, `rack_${r + 1}_${c + 1}_techo`, M.deepSteel, rackW, 0.05, rackD, x, fy + rackH + 0.025, z);
-  }
-  box(fila, `bandeja_cables_${r + 1}`, M.steelLight, perRow * rackPitch + 0.3, 0.06, 0.22, HX, fy + rackH + 0.45, z);
-  // cables de colores sobre la bandeja (rojo/azul como la referencia)
-  decoBox(fila, `bandeja_cable_rojo_${r + 1}`, M.pipeRed, perRow * rackPitch + 0.2, 0.035, 0.07, HX, fy + rackH + 0.5, z - 0.05);
-  decoBox(fila, `bandeja_cable_azul_${r + 1}`, M.pipeBlue, perRow * rackPitch + 0.2, 0.035, 0.07, HX, fy + rackH + 0.5, z + 0.06);
-  // contención pasillo frío: pórticos blancos sobre filas pares (como la imagen)
-  if (r % 2 === 0) {
-    for (let c = 0; c <= perRow; c += 2) {
-      const x = HX - ((perRow - 1) * rackPitch) / 2 + (c - 0.5) * rackPitch;
-      decoBox(fila, `contencion_poste_${r}_${c}`, M.cabinetWhite, 0.07, 0.7, 0.07, x, fy + rackH + 0.85, z);
-    }
-    decoBox(fila, `contencion_techo_${r}`, M.glass, perRow * rackPitch + 0.3, 0.04, 1.1, HX, fy + rackH + 1.2, z);
-  }
-  fila.visible = r < filasIniciales;
-}
-for (let i = 0; i < 3; i++) {
-  const x = HX - 4.4 + i * 4.4;
-  box(P, `crac_${i + 1}`, M.cabinetWhite, 1.45, 2.05, 0.7, x, fy + 1.02, HZ - HD / 2 + WT + 0.42);
-  box(P, `crac_${i + 1}_rejilla`, M.grille, 1.15, 0.9, 0.03, x, fy + 1.35, HZ - HD / 2 + WT + 0.78);
-  decoBox(P, `crac_panel_${i}`, M.deepSteel, 1.15, 0.5, 0.03, x, fy + 0.45, HZ - HD / 2 + WT + 0.78);
-  decoBox(P, `crac_led_${i}`, M.ledGreen, 0.12, 0.06, 0.02, x + 0.4, fy + 1.85, HZ - HD / 2 + WT + 0.78);
-  decoBox(P, `crac_tubo_${i}`, M.pipeBlue, 0.09, 1.9, 0.09, x - 0.85, fy + 0.95, HZ - HD / 2 + WT + 0.4);
-}
-chillerPos.forEach(([x, y, z], i) => {
-  const ch = box(P, `chiller_${i + 1}`, M.cabinetWhite, 1.85, 0.52, 1.15, x, y, z);
-  const fan = cyl(P, `chiller_${i + 1}_ventilador`, M.fan, 0.4, 0.05, x, y + 0.3, z);
-  aspas(fan, `chiller_${i + 1}`);
-  decoCyl(P, `chiller_aro_${i}`, M.deepSteel, 0.46, 0.07, x, y + 0.3, z, 24);
-  decoBox(P, `chiller_rejilla_lat_${i}`, M.grille, 1.7, 0.3, 0.03, x, y, z + 0.59);
-  decoBox(P, `chiller_rejilla_lat2_${i}`, M.grille, 1.7, 0.3, 0.03, x, y, z - 0.59);
-  decoBox(P, `chiller_base_${i}`, M.deepSteel, 2.0, 0.08, 1.3, x, y - 0.3, z);
-  decoBox(P, `chiller_tubo_${i}`, M.pipeBlue, 0.07, 0.07, 1.6, x + 0.6, y - 0.1, z + 0.8);
-});
-box(P, 'uma_cubierta', M.cabinetWhite, 3.4, 0.7, 1.5, HX + 2.4, RY + 0.48, HZ + 3.65);
-{ const u1 = cyl(P, 'uma_ventilador_1', M.fan, 0.32, 0.04, HX + 1.7, RY + 0.86, HZ + 3.65); aspas(u1, 'uma_1', 0.26);
-  const u2 = cyl(P, 'uma_ventilador_2', M.fan, 0.32, 0.04, HX + 3.1, RY + 0.86, HZ + 3.65); aspas(u2, 'uma_2', 0.26);
-  decoBox(P, 'uma_rejilla', M.grille, 3.2, 0.3, 0.04, HX + 2.4, RY + 0.45, HZ + 4.42);
-  decoCyl(P, 'uma_aro_1', M.deepSteel, 0.37, 0.06, HX + 1.7, RY + 0.86, HZ + 3.65, 20);
-  decoCyl(P, 'uma_aro_2', M.deepSteel, 0.37, 0.06, HX + 3.1, RY + 0.86, HZ + 3.65, 20); }
-box(P, 'sala_ups', M.floorDark, 5.6, 0.1, 5.6, UX, y0 + 0.05, UZ);
-box(P, 'sala_ups_cubierta', M.cabinetWhite, 0.2, 0.04, 0.2, UX, y0 + 1.72, UZ);
-// Bancos de baterías como gabinetes blancos UPS de la referencia (con display + sticker)
-[[-1.35, -1.35], [1.35, -1.35], [-1.35, 1.35], [1.35, 1.35]].forEach(([dx, dz], i) => {
-  box(P, `banco_baterias_${i + 1}`, M.cabinetWhite, 1.55, 1.55, 1.55, UX + dx, y0 + 0.85, UZ + dz);
-  decoBox(P, `ups_puerta_${i}`, M.wallMuro, 0.04, 1.3, 0.02, UX + dx - 0.3, y0 + 0.85, UZ + dz + 0.79);
-  decoBox(P, `ups_puerta2_${i}`, M.wallMuro, 0.04, 1.3, 0.02, UX + dx + 0.3, y0 + 0.85, UZ + dz + 0.79);
-  decoBox(P, `ups_display_${i}`, M.glassDark, 0.34, 0.22, 0.03, UX + dx, y0 + 1.25, UZ + dz + 0.79);
-  decoBox(P, `ups_display_luz_${i}`, M.screenBlue, 0.26, 0.14, 0.012, UX + dx, y0 + 1.25, UZ + dz + 0.81);
-  decoBox(P, `ups_sticker_${i}`, M.sticker, 0.16, 0.2, 0.012, UX + dx, y0 + 0.7, UZ + dz + 0.79);
-  decoBox(P, `ups_zocalo_${i}`, M.deepSteel, 1.6, 0.1, 1.6, UX + dx, y0 + 0.12, UZ + dz);
-});
-// Fila extra de UPS blancos al estilo de la imagen (deco, 2 unidades más)
-[[UX - 1.35, UZ + 3.4], [UX + 1.35, UZ + 3.4]].forEach(([x, z], i) => {
-  decoBox(P, `ups_extra_${i}`, M.cabinetWhite, 1.55, 1.55, 1.55, x, y0 + 0.85, z, 0, true);
-  decoBox(P, `ups_extra_display_${i}`, M.screenBlue, 0.26, 0.14, 0.02, x, y0 + 1.25, z + 0.79);
-  decoBox(P, `ups_extra_sticker_${i}`, M.sticker, 0.16, 0.2, 0.012, x, y0 + 0.7, z + 0.79);
-});
-// Baterías rojas + PDU azules (como la referencia, sala eléctrica)
-for (let i = 0; i < 3; i++) {
-  const x = 3.2 + i * 1.9;
-  decoBox(P, `ups_rojo_bastidor_${i}`, M.pdu, 1.2, 1.9, 0.9, x, y0 + 0.95, -8.6, 0, true);
-  for (let s = 0; s < 4; s++) decoBox(P, `ups_rojo_bat_${i}_${s}`, M.grey, 1.0, 0.28, 0.7, x, y0 + 0.35 + s * 0.42, -8.6);
-  decoBox(P, `pdu_azul_${i}`, M.pduBlue, 0.6, 1.9, 0.9, x + 0.95, y0 + 0.95, -8.6, 0, true);
-  decoBox(P, `pdu_azul_led_${i}`, M.ledGreen, 0.1, 0.08, 0.02, x + 0.95, y0 + 1.5, -8.14);
-}
-// Sala TI blanca adicional (contención blanca izquierda, como la referencia)
-for (let c = 0; c < 5; c++) {
-  const x = -12.6 + c * 0.72, z = 2.6;
-  decoBox(P, `sala_blanca_rack_${c}`, M.cabinetWhite, 0.6, 2.0, 0.9, x, fy + 1.0, z, 0, true);
-  decoBox(P, `sala_blanca_frente_${c}`, M.rackWhiteFront, 0.5, 1.8, 0.03, x, fy + 1.0, z + 0.46);
-}
-decoBox(P, 'sala_blanca_techo', M.glass, 4.2, 0.05, 1.3, -11.2, fy + 2.15, 2.6);
-for (let c = 0; c < 3; c++) decoBox(P, `sala_blanca_pilar_${c}`, M.cabinetWhite, 0.08, 0.6, 0.08, -13 + c * 1.8, fy + 1.9, 2.0);
-// Tuberías roja/azul vistas sobre racks (como la imagen)
-decoCyl(P, 'tubo_rojo_sala', M.pipeRed, 0.05, 12, HX - 1, fy + 2.6, HZ + 1.2, 10, [0, 0, Math.PI / 2]);
-decoCyl(P, 'tubo_azul_sala', M.pipeBlue, 0.05, 12, HX - 1, fy + 2.45, HZ + 1.35, 10, [0, 0, Math.PI / 2]);
-// Gabinetes eléctricos + extintores junto a salas (como la referencia)
-[[-13.8, -0.5], [-1.2, 3.4]].forEach(([x, z], i) => {
-  decoBox(P, `tablero_electrico_${i}`, M.cabinetWhite, 0.7, 1.5, 0.4, x, y0 + 0.75, z, 0, true);
-  decoBox(P, `tablero_sticker_${i}`, M.sticker, 0.14, 0.18, 0.02, x, y0 + 1.0, z + 0.21);
-});
-[[-13.1, -0.5], [-0.5, 3.4]].forEach(([x, z], i) => {
-  placePlant('extinguisher', `deco_extintor_${i * 2 + 1}`, x, z, 0.72, Math.PI, P, y0);
-  placePlant('extinguisher', `deco_extintor_${i * 2 + 2}`, x + 0.28, z, 0.72, Math.PI, P, y0);
-});
-
-// ===== ENTRADAS =====
-const I = SUB.entradas;
-box(I, 'transformador', M.grey, 1.7, 1.55, 1.25, TX, y0 + 0.78, TZ);
-decoBox(I, 'transformador_tapa', M.deepSteel, 1.8, 0.1, 1.35, TX, y0 + 1.6, TZ);
-decoBox(I, 'transformador_base', M.concrete, 2.1, 0.18, 1.6, TX, y0 + 0.09, TZ, 0, true);
-decoBox(I, 'transformador_aviso', M.sticker, 0.3, 0.35, 0.02, TX - 0.4, y0 + 0.9, TZ + 0.64);
-decoBox(I, 'transformador_aceite', M.deepSteel, 0.5, 0.9, 0.5, TX - 1.1, y0 + 0.45, TZ);
-for (let i = 0; i < 5; i++) box(I, `transformador_aleta_${i + 1}`, M.deepSteel, 0.05, 1.2, 1.05, TX + 0.88, y0 + 0.78, TZ - 0.45 + i * 0.22);
-[-0.35, 0, 0.35].forEach((o, i) => cyl(I, `transformador_aislador_${i + 1}`, M.cabinetWhite, 0.07, 0.42, TX + o, y0 + 1.78, TZ, 12));
-box(I, 'poste_acometida', M.deepSteel, 0.18, 6.4, 0.18, TX + 2.6, y0 + 3.2, TZ - 3.6);
-line(I, 'acometida_electrica_1', M.ink, [30, 8.6, -6], [TX + 2.6, y0 + 6.4, TZ - 3.6]);
-line(I, 'acometida_electrica_2', M.ink, [TX + 2.6, y0 + 6.4, TZ - 3.6], [TX, y0 + 1.95, TZ]);
-line(I, 'alimentador_ups', M.ink, [TX - 0.85, y0 + 0.5, TZ], [UX + 2.4, y0 + 0.5, UZ], 0.045);
-cyl(I, 'tanque_agua', M.water, 1.35, 2.6, WX, y0 + 1.3, WZ);
-cyl(I, 'tanque_agua_tapa', M.cabinetWhite, 1.38, 0.12, WX, y0 + 2.66, WZ);
-decoCyl(I, 'tanque_escalera', M.deepSteel, 0.04, 2.6, WX + 1.4, y0 + 1.3, WZ, 8);
-for (let i = 0; i < 5; i++) decoBox(I, `tanque_peldano_${i}`, M.deepSteel, 0.3, 0.04, 0.12, WX + 1.4, y0 + 0.4 + i * 0.5, WZ);
-decoBox(I, 'tanque_base', M.concrete, 3.2, 0.18, 3.2, WX, y0 + 0.09, WZ, 0, true);
-decoCyl(I, 'tanque_nivel', M.screenBlue, 0.06, 1.8, WX + 1.0, y0 + 1.3, WZ + 0.9, 8);
-line(I, 'tuberia_agua_1', M.steelLight, [WX, y0 + 0.35, WZ], [HX - HW / 2 - 0.15, y0 + 0.35, WZ], 0.07);
-line(I, 'tuberia_agua_2', M.steelLight, [HX - HW / 2 - 0.15, y0 + 0.35, WZ], [HX - HW / 2 - 0.15, RY + 0.25, WZ], 0.07);
-line(I, 'tuberia_agua_3', M.steelLight, [HX - HW / 2 - 0.15, RY + 0.25, WZ], [chillerPos[0][0], RY + 0.25, chillerPos[0][2]], 0.07);
-box(I, 'sala_meet_me', M.cabinetWhite, 1.8, 1.7, 1.5, MX, y0 + 0.85, MZ);
-box(I, 'sala_meet_me_cubierta', M.wallMuro, 2.0, 0.12, 1.7, MX, y0 + 1.76, MZ);
-decoBox(I, 'meetme_puerta', M.glassDark, 0.7, 1.4, 0.04, MX - 0.3, y0 + 0.7, MZ + 0.76);
-decoBox(I, 'meetme_patch', M.deepSteel, 1.4, 0.9, 0.06, MX, y0 + 0.9, MZ - 0.72);
-for (let i = 0; i < 4; i++) decoBox(I, `meetme_led_${i}`, M.ledGreen, 0.08, 0.05, 0.02, MX - 0.45 + i * 0.3, y0 + 1.2, MZ - 0.68);
-box(E, 'poste_telecom', M.deepSteel, 0.16, 5.6, 0.16, -30, y0 + 2.8, 10);
-line(I, 'fibra_entrada', M.steelLight, [-30, y0 + 5.6, 10], [MX, y0 + 1.8, MZ], 0.03);
-
-// ===== SALIDAS =====
-const O = SUB.salidas;
-for (let i = 0; i < 4; i++) {
-  const [x, y, z] = chillerPos[i];
-  const p = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.42, 1.8, 16, 1, true), M.heat);
-  p.name = `calor_chiller_${i + 1}`; p.position.set(x, y + 1.35, z); p.userData.baseY = y + 1.35; O.add(p);
-}
-line(O, 'fibra_salida_datos', M.steelLight, [MX, y0 + 1.7, MZ + 0.35], [-26, 7, -16], 0.03);
-placePlant('dumpster', 'contenedor_e_waste', 6.5, 10.6, 1.35, 0, O, y0);
-for (let i = 0; i < 3; i++) box(O, `rack_retirado_${i + 1}`, M.grey, 0.5, 0.32, 0.85, 8.4 + i * 0.62, y0 + 0.16, 10.6);
-decoBox(O, 'ewaste_pallet', M.deskTop, 2.4, 0.1, 1.1, 9.0, y0 + 0.05, 10.6);
-line(O, 'drenaje_agua', M.grey, [HX - HW / 2 - 0.15, y0 + 0.18, HZ + 2], [WX, y0 + 0.18, HZ + 2], 0.05);
-
-// ===== RETROALIMENTACIÓN =====
-const R = SUB.retroalimentacion;
-// Sala NOC: panel de fondo, zócalo, alfombra y luz ambiente
-decoBox(R, 'noc_panel_fondo', M.wallAccent, 7.2, 1.55, 0.08, NX + 1.7, y0 + 0.85, NZ - 1.05);
-decoBox(R, 'noc_zocalo', M.deepSteel, 7.2, 0.12, 0.1, NX + 1.7, y0 + 0.06, NZ - 1.05);
-decoBox(R, 'noc_friso', M.cabinetWhite, 7.2, 0.08, 0.1, NX + 1.7, y0 + 1.6, NZ - 1.05);
-decoBox(R, 'noc_alfombra', M.carpetNoc, 7.0, 0.025, 3.6, NX + 1.7, y0 + 0.02, NZ + 0.35);
-// luminarias colgantes
-const lucesNoc = [];
-{
-  // Una sola PointLight cálida en el centro del NOC (meshes siguen con emisión).
-  const pl = new THREE.PointLight(0xffc888, 0, 6.5, 2);
-  pl.position.set(NX + 1.7, y0 + 1.75, NZ);
-  pl.name = 'deco_noc_punto_0';
-  R.add(pl);
-  lucesNoc.push(pl);
-}
-[[NX - 0.2, NZ + 0.2], [NX + 1.7, NZ], [NX + 3.6, NZ - 0.2]].forEach(([lx, lz], i) => {
-  decoCyl(R, `noc_luz_cable_${i}`, M.deepSteel, 0.012, 0.35, lx, y0 + 2.05, lz, 6);
-  decoCyl(R, `noc_luz_${i}`, M.lampWarm, 0.16, 0.06, lx, y0 + 1.85, lz, 12);
-});
-// Escritorios NOC (models/desk.glb) — ancla inmediata para animaciones/picking por nombre
-const nocRoot = new THREE.Group(); nocRoot.name = 'noc'; R.add(nocRoot);
-placePlant('desk', 'noc_modelo', NX, NZ, 1.65, Math.PI, nocRoot, y0);
-placePlant('desk', 'deco_noc2', NX + 3.5, NZ - 0.35, 1.55, Math.PI, R, y0);
-plantsReady.then(() => {
-  if (!nocRoot.children.length) console.error('Falta escritorio NOC');
-});
-// Proxies con nombre fijo que usan las animaciones / validación
-box(R, 'noc_cubierta', M.deepSteel, 0.01, 0.01, 0.01, NX, y0 + 1.6, NZ);
-box(R, 'noc_pantalla_imagen', M.screenBlue, 0.55, 0.34, 0.02, NX - 0.15, y0 + 1.15, NZ - 0.55);
-// ambientación: plantas, pósters de estado, rack de networking lateral
-plantaMaceta(R, 'noc_planta_1', NX - 1.4, y0, NZ + 1.3);
-plantaMaceta(R, 'noc_planta_2', NX + 5.0, y0, NZ + 0.9);
-decoBox(R, 'noc_poster_1', M.screenBlue, 0.55, 0.4, 0.02, NX + 1.6, y0 + 1.15, NZ - 1.0);
-decoBox(R, 'noc_poster_2', M.screenMint, 0.45, 0.55, 0.02, NX + 2.3, y0 + 1.1, NZ - 1.0);
-decoBox(R, 'noc_poster_marco_1', M.cabinetWhite, 0.6, 0.05, 0.03, NX + 1.6, y0 + 1.37, NZ - 1.0);
-decoBox(R, 'noc_poster_marco_2', M.cabinetWhite, 0.5, 0.05, 0.03, NX + 2.3, y0 + 1.4, NZ - 1.0);
-decoBox(R, 'noc_side_rack', M.rack, 0.45, 1.1, 0.55, NX + 5.4, y0 + 0.58, NZ - 0.6);
-decoBox(R, 'noc_side_front', M.rackFront, 0.4, 1.0, 0.03, NX + 5.4, y0 + 0.58, NZ - 0.32);
-decoBox(R, 'noc_papelera', M.deepSteel, 0.22, 0.32, 0.22, NX - 1.2, y0 + 0.16, NZ + 0.9);
-decoCyl(R, 'noc_papelera_aro', M.steelLight, 0.12, 0.03, NX - 1.2, y0 + 0.33, NZ + 0.9, 12);
-for (let r = 0; r < rows; r++) {
-  const s = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 12), M.led);
-  s.name = `sensor_fila_${r + 1}`; s.position.set(HX + (perRow * rackPitch) / 2 + 0.42, fy + rackH + 0.22, zFila(r)); R.add(s); s.visible = r < filasIniciales; filas[r].userData.sensor = s;
-}
-line(R, 'bus_monitoreo', M.steelLight, [HX + (perRow * rackPitch) / 2 + 0.42, fy + rackH + 0.22, zFila(0)], [HX + (perRow * rackPitch) / 2 + 0.42, fy + rackH + 0.22, zFila(rows - 1)], 0.02);
-line(R, 'bus_monitoreo_noc', M.steelLight, [HX + (perRow * rackPitch) / 2 + 0.42, fy + rackH + 0.22, zFila(rows - 1)], [NX, y0 + 1.55, NZ], 0.02);
-box(R, 'estacion_meteo_mastil', M.cabinetWhite, 0.07, 2.4, 0.07, HX + HW / 2 - 0.6, RY + 1.3, HZ + HD / 2 - 0.6);
-{ const an = cyl(R, 'estacion_meteo_anemometro', M.steelLight, 0.28, 0.045, HX + HW / 2 - 0.6, RY + 2.55, HZ + HD / 2 - 0.6, 16);
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * Math.PI * 2;
-    const cup = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), M.cabinetWhite);
-    cup.name = `deco_anemo_copa_${i}`; cup.position.set(Math.cos(a) * 0.28, 0, Math.sin(a) * 0.28); an.add(cup);
-  }
-  decoBox(R, 'meteo_panel', M.screenBlue, 0.3, 0.2, 0.04, HX + HW / 2 - 0.6, RY + 1.7, HZ + HD / 2 - 0.55);
-  decoCyl(R, 'meteo_veleta', M.deepSteel, 0.02, 0.7, HX + HW / 2 - 0.6, RY + 2.3, HZ + HD / 2 - 0.6, 8, [0, 0, Math.PI / 2]); }
-
-// ===== RESILIENCIA =====
-const S = SUB.resiliencia;
-// Bancada de concreto para generadores
-decoBox(S, 'gen_bancada', M.concrete, 4.6, 0.18, 7.8, GX + 0.2, y0 + 0.09, GZ + 2.15, 0, true);
-// Tres generadores diésel (estilo industrial beige / ventilador axial / cabina blanca)
-buildGenerator(S, {
-  bodyName: 'generador', fanName: 'generador_ventilador', tag: 'gen',
-  x: GX, y: y0 + 0.18, z: GZ, intakes: 3, named: true, withControls: true,
-});
-buildGenerator(S, {
-  bodyName: 'generador_reserva', fanName: 'generador_reserva_ventilador', tag: 'genres',
-  x: GX, y: y0 + 0.18, z: GZ + 2.15, intakes: 4, named: true, withControls: true,
-});
-buildGenerator(S, {
-  bodyName: 'generador_3', fanName: 'generador_3_ventilador', tag: 'gen3',
-  x: GX, y: y0 + 0.18, z: GZ + 4.3, intakes: 3, named: false, withControls: true,
-});
-// Escape + humo del generador principal (sobre el bloque motor)
-cyl(S, 'generador_escape', M.deepSteel, 0.09, 0.7, GX - 0.55, y0 + 1.55, GZ - 0.28, 12);
-decoCyl(S, 'gen_escape_codo', M.deepSteel, 0.09, 0.32, GX - 0.35, y0 + 1.88, GZ - 0.28, 10, [0, 0, Math.PI / 2.4]);
-M.humo = mat('humo', 0x98989b, 1, 0, { transparent: true, opacity: 0, depthWrite: false });
-const humo = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.1, 1.6, 22, 1, true), M.humo);
-humo.name = 'generador_humo'; humo.position.set(GX - 0.55, y0 + 2.55, GZ - 0.28); humo.visible = false; S.add(humo);
-M.genLed = mat('gen_led', 0x1d1f20, 0.5, 0, { emissive: 0x000000, emissiveIntensity: 1 });
-box(S, 'generador_indicador', M.genLed, 0.12, 0.12, 0.02, GX + 1.54, y0 + 1.35, GZ);
-cyl(S, 'tanque_combustible', M.cabinetWhite, 0.55, 2.6, GX + 2.55, y0 + 0.52, GZ + 0.85, 36, [Math.PI / 2, 0, 0]);
-[-0.9, 0.9].forEach((o, i) => box(S, `tanque_combustible_apoyo_${i + 1}`, M.deepSteel, 0.22, 0.28, 1.15, GX + 2.55, y0 + 0.14, GZ + 0.85 + o));
-decoCyl(S, 'tanque_nivel_tubo', M.pipeRed, 0.05, 1.8, GX + 2.55, y0 + 0.5, GZ - 0.3, 8, [Math.PI / 2, 0, 0]);
-decoBox(S, 'tanque_etiqueta', M.sticker, 0.4, 0.3, 0.02, GX + 2.55, y0 + 0.6, GZ + 1.42);
-line(S, 'alimentador_generador', M.ink, [GX - 1.2, y0 + 0.42, GZ], [UX + 2.4, y0 + 0.42, UZ + 0.8], 0.045);
-box(S, 'poste_acometida_2', M.deepSteel, 0.18, 6.4, 0.18, TX + 2.6, y0 + 3.2, TZ + 10.5);
-line(S, 'acometida_electrica_redundante', M.ink, [30, 8.6, 1.5], [TX + 2.6, y0 + 6.4, TZ + 10.5]);
-line(S, 'acometida_electrica_redundante_2', M.ink, [TX + 2.6, y0 + 6.4, TZ + 10.5], [TX, y0 + 1.95, TZ + 0.5]);
-[[HX + 5.4, HZ + 0.2], [HX + 5.4, HZ + 1.1]].forEach(([x, z], i) => {
-  placePlant('extinguisher', `deco_cilindro_extincion_${i + 1}`, x, z, 1.2, -Math.PI / 2, S, fy);
-  decoBox(S, `ext_cartel_${i}`, M.fire, 0.3, 0.4, 0.03, x, fy + 1.7, z - 0.4);
-  decoBox(S, `ext_cartel_txt_${i}`, M.paper, 0.24, 0.1, 0.012, x, fy + 1.7, z - 0.38);
-});
-
-M.lampara = mat('lampara', 0xeef6ff, 0.3, 0, { emissive: 0xb5d9fd, emissiveIntensity: 1.8 });
-const lamparas = [];
-[[-17, -11], [-17, 11], [17, -11], [17, 11], [0, 11.6]].forEach(([x, z], i) => {
-  box(F, `luminaria_${i + 1}_poste`, M.deepSteel, 0.12, 4.4, 0.12, x, y0 + 2.2, z);
-  box(F, `luminaria_${i + 1}_lampara`, M.lampara, 0.56, 0.12, 0.3, x, y0 + 4.42, z);
-  decoBox(F, `luminaria_cap_${i}`, M.deepSteel, 0.64, 0.07, 0.36, x, y0 + 4.52, z);
-  decoBox(F, `luminaria_base_${i}`, M.concrete, 0.5, 0.18, 0.5, x, y0 + 0.09, z, 0, true);
-  const pl = new THREE.PointLight(0xb5d9fd, 0, 14, 1.6); pl.position.set(x, y0 + 4.2, z); pl.name = `luminaria_${i + 1}_luz`; F.add(pl); lamparas.push(pl);
-});
-const luzSala = new THREE.PointLight(0x94bce3, 0, 22, 1.4); luzSala.position.set(HX, y0 + 3.1, HZ); luzSala.name = 'luz_sala'; P.add(luzSala);
-const luzGen = new THREE.PointLight(0xb5d9fd, 0, 8, 1.6); luzGen.position.set(GX, y0 + 1.8, GZ); luzGen.name = 'luz_generador'; S.add(luzGen);
-
-// ===== Termómetro en un servidor (Equifinalidad) =====
-const servidorRef = ROOT.getObjectByName('rack_2_4_servidor_4');
-const termo = new THREE.Group(); termo.name = 'termometro'; P.add(termo);
-{ const p = servidorRef.getWorldPosition(new THREE.Vector3());
-  const tx = p.x - 0.12, ty = p.y, tz = p.z + 0.035;
-  M.vidrio = mat('vidrio', 0xf5f5f8, 0.2, 0);
-  M.mercurio = mat('mercurio', 0x94bce3, 0.3, 0, { emissive: 0x94bce3, emissiveIntensity: 1.2 });
-  box(termo, 'termometro_placa', M.deepSteel, 0.2, 0.2, 0.01, tx, ty, tz);
-  cyl(termo, 'termometro_tubo', M.vidrio, 0.014, 0.15, tx - 0.06, ty + 0.01, tz + 0.008, 16);
-  const bulbo = new THREE.Mesh(new THREE.SphereGeometry(0.024, 16, 12), M.mercurio); bulbo.name = 'termometro_bulbo'; bulbo.position.set(tx - 0.06, ty - 0.065, tz + 0.008); termo.add(bulbo);
-  const columna = cyl(termo, 'termometro_columna', M.mercurio, 0.007, 0.075, tx - 0.06, ty - 0.03, tz + 0.009, 12); // 20°C ≈ mitad de la escala 0–40
-  for (let i = 0; i <= 4; i++) box(termo, `termometro_marca_${i}`, M.paper, 0.02, 0.003, 0.002, tx - 0.035, ty - 0.065 + i * 0.035, tz + 0.007);
-  // Pantalla digital "20°C" dibujada en canvas (solo visual; no viaja al OBJ)
-  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64; const c = cv.getContext('2d');
-  const pintarTemp = v => { c.fillStyle = '#1d2d3d'; c.fillRect(0, 0, 128, 64); c.fillStyle = '#b5d9fd'; c.font = '700 40px "Barlow Condensed", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(`${v}°C`, 64, 34); if (termo.userData.tex) termo.userData.tex.needsUpdate = true; };
-  pintarTemp(20); termo.userData.pintarTemp = pintarTemp;
-  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; termo.userData.tex = tex;
-  M.display = Object.assign(new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.9, roughness: 0.4 }), { name: 'display' });
-  box(termo, 'termometro_display', M.display, 0.11, 0.055, 0.004, tx + 0.035, ty + 0.03, tz + 0.007);
-  termo.userData.foco = new THREE.Vector3(tx, ty, tz);
-}
-
-// ===== Microprocesador en un blade (Jerarquía) =====
-const bladeRef = ROOT.getObjectByName('rack_2_6_servidor_3'), rackRef = ROOT.getObjectByName('rack_2_6');
-M.chip = mat('chip', 0x2b2b2d, 0.4, 0.3);
-M.pines = mat('pines', 0x94bce3, 0.4, 0.4);
-{ const p = bladeRef.getWorldPosition(new THREE.Vector3());
-  const cx = p.x + 0.08, cy = p.y, cz = p.z + 0.012;
-  box(rackRef, 'rack_2_6_servidor_3_chip_base', M.pines, 0.09, 0.09, 0.006, cx, cy, cz);
-  box(rackRef, 'rack_2_6_servidor_3_chip', M.chip, 0.06, 0.06, 0.008, cx, cy, cz + 0.006);
-  for (let i = 0; i < 5; i++) { box(rackRef, `rack_2_6_servidor_3_chip_aleta_${i + 1}`, M.grey, 0.05, 0.004, 0.012, cx, cy - 0.024 + i * 0.012, cz + 0.016); }
-}
-const chipRef = ROOT.getObjectByName('rack_2_6_servidor_3_chip');
-['linea_at', 'acometida_electrica_1', 'acometida_electrica_2', 'alimentador_ups', 'alimentador_generador', 'acometida_electrica_redundante', 'acometida_electrica_redundante_2', 'fibra_entrada', 'fibra_salida_datos', 'rack_2_4_servidor_4', 'rack_2_6', 'rack_2_6_servidor_3', 'rack_2_3', 'rack_2_3_gabinete', 'chiller_1', 'chiller_1_ventilador', 'calor_chiller_1', 'crac_1', 'crac_1_rejilla', 'cubierta', 'uma_cubierta', 'noc', 'noc_cubierta', 'noc_pantalla_imagen', 'sensor_fila_2', 'generador', 'generador_humo', 'generador_indicador', 'transformador', 'tanque_agua', 'sala_meet_me', 'ciudad_1', 'estacion_meteo_anemometro', 'porton', 'placa_sitio'].forEach(n => { if (!ROOT.getObjectByName(n)) console.error('Falta objeto', n); });
-plantsReady.then(() => {
-  ['noc_modelo', 'deco_noc2', 'contenedor_e_waste'].forEach(n => { if (!ROOT.getObjectByName(n)) console.error('Falta objeto', n); });
-});
+const { lockScriptedCam, unlockScriptedCam, aimScriptedCam } = createScriptedCamera(stage);
 
 M.heat.side = THREE.DoubleSide; M.humo.side = THREE.DoubleSide;
 
@@ -1046,17 +102,21 @@ function zoomTermometro() {
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
   const foco = termo.userData.foco, p1 = foco.clone().add(new THREE.Vector3(0.04, 0.05, 0.42));
-  const near0 = cam.near; cam.near = 0.02; cam.updateProjectionMatrix();
-  ctl.autoRotate = false; ctl.enabled = false; btnZoom.disabled = true;
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const near0 = cam.near; cam.near = 0.05; cam.updateProjectionMatrix();
+  const wasDamp = lockScriptedCam(ctl); btnZoom.disabled = true;
+  const ease = easeInOutCubic;
   const start = performance.now(), IN = 2.2, HOLD = 2.5, OUT = 2.0;
+  const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
   zoomAnim = requestAnimationFrame(function step(now) {
     const t = (now - start) / 1000; let u;
     if (t < IN) { u = ease(t / IN); estado.textContent = 'Acercando al servidor'; }
     else if (t < IN + HOLD) { u = 1; estado.textContent = 'Chip a 20 °C · bajo el umbral térmico'; }
     else if (t < IN + HOLD + OUT) { u = 1 - ease((t - IN - HOLD) / OUT); estado.textContent = 'Regresando'; }
-    else { cam.position.copy(p0); ctl.target.copy(t0); ctl.update(); cam.near = near0; cam.updateProjectionMatrix(); ctl.enabled = true; ctl.autoRotate = wasAuto; estado.textContent = ''; btnZoom.disabled = false; zoomAnim = null; return; }
-    cam.position.lerpVectors(p0, p1, u); ctl.target.lerpVectors(t0, foco, u); ctl.update();
+    else {
+      unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
+      estado.textContent = ''; btnZoom.disabled = false; zoomAnim = null; return;
+    }
+    aimScriptedCam(cam, ctl, tmpP.lerpVectors(p0, p1, u), tmpT.lerpVectors(t0, foco, u));
     zoomAnim = requestAnimationFrame(step);
   });
 }
@@ -1078,11 +138,16 @@ function animarJerarquia() {
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
   const cbJer = layers.querySelector('input[data-k="jerarquia"]'), jerOn = !!(cbJer && cbJer.checked);
   if (jerOn) resaltar(CAPAS.jerarquia.resaltar, false);
-  cam.near = 0.02; cam.updateProjectionMatrix(); ctl.autoRotate = false; ctl.enabled = false; btnJer.disabled = true;
+  const wasDamp = lockScriptedCam(ctl);
+  cam.near = 0.05; cam.updateProjectionMatrix();
+  if (btnJer) btnJer.disabled = true;
   const V = (a, b) => new THREE.Vector3(a.x, a.y, a.z).add(b);
+  // Matrices al día: tras el montaje React / GLBs diferidos puede haber un frame stale.
+  ROOT.updateMatrixWorld(true);
   const fChip = chipRef.getWorldPosition(new THREE.Vector3());
   const fBlade = bladeRef.getWorldPosition(new THREE.Vector3());
-  const fRack = rackRef.getObjectByName('rack_2_6_gabinete').getWorldPosition(new THREE.Vector3());
+  const gabinete = rackRef.getObjectByName('rack_2_6_gabinete');
+  const fRack = gabinete.getWorldPosition(new THREE.Vector3());
   // El rediseño bonito añadió una puerta frontal opaca con textura de leds
   // (deco_rack_2_6_puerta) que tapa el blade y los servidores al parpadear.
   // Se oculta durante la animación y se restaura al final; la etapa 3 además
@@ -1096,18 +161,31 @@ function animarJerarquia() {
   // edificios y farolas del entorno (atenuados pero con material emisivo).
   const mallasJer = [];
   CAPAS.jerarquia.resaltar.forEach(n => { const g = SUB[n]; if (g) g.traverse(o => { if (o.isMesh) mallasJer.push(o); }); });
+  // Offsets un poco más abiertos: a 0.28 m los LEDs emisivos llenan el FOV y
+  // parecen “desenfoque”; el damping de Orbit peores el encuadre.
   const etapas = [
-    { foco: fChip, cam: V(fChip, new THREE.Vector3(0.03, 0.03, 0.28)), objs: [chipRef], txt: '1 · Microprocesador' },
-    { foco: fBlade, cam: V(fBlade, new THREE.Vector3(0.1, 0.12, 1.1)), objs: [bladeRef], txt: '2 · Blade (servidor)' },
-    { foco: fRack, cam: V(fRack, new THREE.Vector3(1.2, 0.9, 3.8)), objs: meshesRack6, txt: '3 · Rack completo' },
+    { foco: fChip, cam: V(fChip, new THREE.Vector3(0.12, 0.1, 0.55)), objs: [chipRef], txt: '1 · Microprocesador' },
+    { foco: fBlade, cam: V(fBlade, new THREE.Vector3(0.35, 0.25, 1.55)), objs: [bladeRef], txt: '2 · Blade (servidor)' },
+    { foco: fRack, cam: V(fRack, new THREE.Vector3(1.6, 1.1, 4.6)), objs: meshesRack6, txt: '3 · Rack completo' },
     { foco: t0, cam: p0, objs: [], global: true, txt: '4 · Datacenter como sistema' },
   ];
-  const MOVE = 1.8, HOLD = 2.4, ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const MOVE = 1.8, HOLD = 2.4, ease = easeInOutCubic;
   let pFrom = p0.clone(), tFrom = t0.clone(), etapa = 0, tEtapa = performance.now(), fase = 'move', globalOn = false;
+  const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+  const finishJer = () => {
+    if (globalOn) resaltar(CAPAS.jerarquia.resaltar, false);
+    if (jerOn) resaltar(CAPAS.jerarquia.resaltar, true);
+    if (puertaRack6) puertaRack6.visible = puertaVis0;
+    unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
+    estado.textContent = '';
+    if (btnJer) btnJer.disabled = false;
+    jerAnim = null;
+  };
   jerAnim = requestAnimationFrame(function step(now) {
     const e = etapas[etapa], t = (now - tEtapa) / 1000;
     if (fase === 'move') {
-      const u = ease(Math.min(t / MOVE, 1)); cam.position.lerpVectors(pFrom, e.cam, u); ctl.target.lerpVectors(tFrom, e.foco, u); ctl.update();
+      const u = ease(Math.min(t / MOVE, 1));
+      aimScriptedCam(cam, ctl, tmpP.lerpVectors(pFrom, e.cam, u), tmpT.lerpVectors(tFrom, e.foco, u));
       estado.textContent = 'Jerarquía · ' + e.txt;
       if (t >= MOVE) { fase = 'hold'; tEtapa = now; if (e.global) { resaltar(CAPAS.jerarquia.resaltar, true); globalOn = true; } }
     } else {
@@ -1117,13 +195,7 @@ function animarJerarquia() {
       if (t >= HOLD) {
         parpadear(e.objs, false); etapa++; fase = 'move'; tEtapa = now; pFrom = cam.position.clone(); tFrom = ctl.target.clone();
         if (etapa < etapas.length && etapas[etapa].global && puertaRack6) puertaRack6.visible = puertaVis0;
-        if (etapa >= etapas.length) {
-          if (globalOn) resaltar(CAPAS.jerarquia.resaltar, false);
-          if (jerOn) resaltar(CAPAS.jerarquia.resaltar, true);
-          if (puertaRack6) puertaRack6.visible = puertaVis0;
-          cam.position.copy(p0); ctl.target.copy(t0); ctl.update(); cam.near = near0; cam.updateProjectionMatrix();
-          ctl.enabled = true; ctl.autoRotate = wasAuto; estado.textContent = ''; btnJer.disabled = false; jerAnim = null; return;
-        }
+        if (etapa >= etapas.length) { finishJer(); return; }
       }
     }
     jerAnim = requestAnimationFrame(step);
@@ -1202,7 +274,7 @@ function animarComplejidad() {
   const techo = [];
   ROOT.traverse(o => { if (/^(cubierta|uma_cubierta|uma_ventilador|uma_rejilla|uma_aro|chiller_|calor_chiller_|estacion_meteo|meteo_panel|meteo_veleta|deco_(cubierta|uma_|chiller_|meteo_|anemo_))/.test(o.name)) techo.push(o); });
   const techoVis = techo.map(o => o.visible);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const IN = 2.0, PAUSA = 1.2, CREC = 0.9, OUT = 2.0;
   // Etapa 1: la ciudad crece (demanda)
   const C_IN = 2.0, C_EDIF = 0.7, C_PASO = 0.45, C_HOLD = 1.0;
@@ -1306,7 +378,7 @@ const lluvia = new THREE.Points(lluviaGeo, M.lluvia); lluvia.name = 'lluvia'; ll
 function caerLluvia(dt) { const a = lluviaGeo.attributes.position.array; for (let i = 0; i < N_LLUVIA; i++) { a[i * 3 + 1] -= 18 * dt; if (a[i * 3 + 1] < 0.2) a[i * 3 + 1] = 30; } lluviaGeo.attributes.position.needsUpdate = true; }
 function animarAdaptabilidad() {
   if (adAnim) return; btnAd.disabled = true; elevarSitio(0);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const LLUVIA = 3.0, SUBE = 2.5, PAUSA = 0.6, INUNDA = 3.0, HOLD = 2.5, BAJA = 2.5, AGUA_H = 2.2;
   const T1 = LLUVIA, T2 = T1 + SUBE, T3 = T2 + PAUSA, T4 = T3 + INUNDA, T5 = T4 + HOLD, T6 = T5 + BAJA;
   const start = performance.now(); let prev = start; agua.visible = true; lluvia.visible = true;
@@ -1364,10 +436,14 @@ function aplicarDeterioro(k) {
 }
 function mezclaLuz(noche) { // 0 = día, 1 = noche (continuo)
   const d = 1 - noche;
-  stage._hemi.intensity = 0.32 + 0.68 * d; stage._hemi.color.setHex(0xffffff).lerp(new THREE.Color(0x94bce3), noche); stage._hemi.groundColor.setHex(0xd4e3f0).lerp(new THREE.Color(0x1d2d3d), noche);
-  stage._key.intensity = 0.55 + 1.1 * d; stage._key.color.setHex(0xffffff).lerp(new THREE.Color(0xb5d9fd), noche); stage._fill.intensity = 0.16 + 0.34 * d;
-  const bg = new THREE.Color(0xcfe9f8).lerp(new THREE.Color(0x1d2d3d), noche); stage.style.setProperty('--stage-bg', '#' + bg.getHexString());
-  document.body.classList.toggle('noche', noche > 0.5); stage.style.setProperty('--stage-note', noche > 0.5 ? '#b5d9fd' : 'rgba(26, 25, 21, 0.55)');
+  stage._hemi.intensity = 0.38 + 0.57 * d; stage._hemi.color.setHex(0xe8f0f8).lerp(new THREE.Color(0xb497cf), noche); stage._hemi.groundColor.setHex(0xc0ccd8).lerp(new THREE.Color(0x0a0a0a), noche);
+  stage._key.intensity = 0.68 + 1.17 * d; stage._key.color.setHex(0xfff4ea).lerp(new THREE.Color(0xd7c6ea), noche); stage._fill.intensity = 0.2 + 0.32 * d;
+  if (stage._rim) { stage._rim.intensity = 0.18 + 0.14 * d; stage._rim.color.setHex(0xd7c6ea); }
+  const bg = new THREE.Color(0xd8e6f2).lerp(new THREE.Color(0x0a0a0a), noche); stage.style.setProperty('--stage-bg', '#' + bg.getHexString());
+  (stage.closest('.dc-page') || document.body).classList.toggle('noche', noche > 0.5); stage.style.setProperty('--stage-note', noche > 0.5 ? '#c9b6df' : 'rgba(26, 25, 21, 0.5)');
+  stage.style.setProperty('--stage-toolbar-bg', noche > 0.5 ? 'rgba(10, 10, 10, 0.78)' : 'rgba(255, 255, 255, 0.92)');
+  stage.style.setProperty('--stage-toolbar-ink', noche > 0.5 ? '#f4f7ff' : '#2c4a64');
+  stage.style.setProperty('--stage-toolbar-border', noche > 0.5 ? 'rgba(244, 247, 255, 0.14)' : 'rgba(29, 45, 61, 0.14)');
 }
 function animarEntropia() {
   if (enAnim) return; btnEn.disabled = true; aplicarDeterioro(0);
@@ -1455,7 +531,7 @@ function animarEquilibrio() {
   const cam = stage._camera, ctl = stage._controls; const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
   ctl.autoRotate = false; ctl.enabled = false;
   const foco = new THREE.Vector3(HX, RY + 3.5, HZ), pIn = new THREE.Vector3(HX + 14, RY + 10, HZ + 26);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const IN = 2.0, ESTABLE = 2.5, PERT = 2.0, COMP = 6.0, CIERRE = 1.5, OUT = 2.0;
   const T1 = IN, T2 = T1 + ESTABLE, T3 = T2 + PERT, T4 = T3 + COMP, T5 = T4 + CIERRE, T6 = T5 + OUT;
   const start = performance.now(); const flujoPropio = !cpxAnim; if (flujoPropio) animarFlujo(true);
@@ -1501,7 +577,7 @@ function animarRetroalimentacion() {
   ctl.autoRotate = false; ctl.enabled = false;
   const foco = new THREE.Vector3(HX + 2, y0 + 2, HZ + 2), pIn = new THREE.Vector3(HX + 16, y0 + 12, HZ + 20);
   const techo = ['cubierta', 'uma_cubierta', 'uma_ventilador_1', 'uma_ventilador_2', 'chiller_1', 'chiller_2', 'chiller_3', 'chiller_4', 'chiller_1_ventilador', 'chiller_2_ventilador', 'chiller_3_ventilador', 'chiller_4_ventilador', 'noc_cubierta'].map(n => ROOT.getObjectByName(n)).filter(Boolean); const techoVis = techo.map(o => o.visible);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const gabMat = gabRf.material, pantMat = pantallaRf.material, rejMat = rejillaRf.material, sensMat = sensorRf.material;
   const IN = 2.0, CAL = 1.8, MED = 1.6, DEC = 1.2, ACT = 1.6, EFE = 2.5, OK = 1.2, OUT = 2.0;
   const T1 = IN, T2 = T1 + CAL, T3 = T2 + MED, T4 = T3 + DEC, T5 = T4 + ACT, T6 = T5 + EFE, T7 = T6 + OK, T8 = T7 + OUT;
@@ -1552,7 +628,7 @@ function animarRecursividad() {
   if (rcAnim || enAnim) return; btnRc.disabled = true;
   const cam = stage._camera, ctl = stage._controls; const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
   ctl.autoRotate = false; ctl.enabled = false; const near0 = cam.near; cam.near = 0.05; cam.updateProjectionMatrix();
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const MOVE = 2.0, HOLD = 3.2, start = performance.now();
   let etapa = 0, fase = 'move', tEt = start, pFrom = p0.clone(), tFrom = t0.clone(), hlOn = false;
   const todosRoles = e => n => Object.values(e.roles).some(rx => rx.test(n));
@@ -1642,7 +718,7 @@ function animarMulticausalidad() {
   const cam = stage._camera, ctl = stage._controls; const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate; ctl.autoRotate = false; ctl.enabled = false;
   const foco = new THREE.Vector3(HX - 6, y0 + 2, HZ - 2), pIn = new THREE.Vector3(HX + 22, RY + 20, HZ + 40);
   const techoMc = ['cubierta', 'uma_cubierta', 'uma_ventilador_1', 'uma_ventilador_2', 'chiller_1', 'chiller_2', 'chiller_3', 'chiller_4', 'chiller_1_ventilador', 'chiller_2_ventilador', 'chiller_3_ventilador', 'chiller_4_ventilador', 'calor_chiller_1', 'calor_chiller_2', 'calor_chiller_3', 'calor_chiller_4', 'antena_parabolica', 'antena_parabolica_base'].map(n => ROOT.getObjectByName(n)).filter(Boolean); const techoMcVis = techoMc.map(o => o.visible);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const IN = 2.0, CAUSA = 1.6, CONV = 2.5, HOLD = 3.0, OUT = 2.0; const T1 = IN, T2 = T1 + CAUSA * 3, T3 = T2 + CONV, T4 = T3 + HOLD, T5 = T4 + OUT;
   const start = performance.now(); cielo.visible = true; posCielo(0.05); sol.position.set(HX - 14, RY + 9, HZ + 6); luna.visible = false;
   const hl = new Map(); const marcar = (objs, on) => objs.forEach(o => { if (!o.isMesh) return; if (on) { if (!hl.has(o)) hl.set(o, o.material); const m = hl.get(o).clone(); m.emissive = new THREE.Color(0xc0392b); m.emissiveIntensity = 0.9; o.material = m; } else if (hl.has(o)) o.material = hl.get(o); });
@@ -1835,7 +911,7 @@ stage.addEventListener('pointerup', e => {
   const obj = hits[0].object;
   let sub = obj; while (sub.parent && sub.parent !== ROOT) sub = sub.parent;
   picked = obj; savedMat = obj.material;
-  obj.material = savedMat.clone(); obj.material.emissive = new THREE.Color(0x5980a6); obj.material.emissiveIntensity = 0.9;
+  obj.material = savedMat.clone(); obj.material.emissive = new THREE.Color(0xb497cf); obj.material.emissiveIntensity = 0.95;
   sel.innerHTML = `<b>${obj.name}</b>${sub.userData.label} — ${sub.userData.desc}` + (obj.userData.capa ? `<br><br><b>${CAPAS[obj.userData.capa].label}</b>${CAPAS[obj.userData.capa].desc}` : '');
 });
 const btnRayo = document.getElementById('btnRayo'), btnMc = document.getElementById('btnMc'), btnRc = document.getElementById('btnRc'), btnRf = document.getElementById('btnRf'), btnEq = document.getElementById('btnEq'), btnHo = document.getElementById('btnHo'), btnNg = document.getElementById('btnNg'), btnEn = document.getElementById('btnEn'), btnAd = document.getElementById('btnAd'), btnRes = document.getElementById('btnRes'), btnZoom = document.getElementById('btnZoom'), btnJer = document.getElementById('btnJer'), btnCpx = document.getElementById('btnCpx');
@@ -1843,16 +919,21 @@ const btnRayo = document.getElementById('btnRayo'), btnMc = document.getElementB
 let lampBase = 0, salaBase = 0, farolBase = 0;
 function setModo(noche) {
   modoNoche = noche;
-  document.body.classList.toggle('noche', noche);
+  (stage.closest('.dc-page') || document.body).classList.toggle('noche', noche);
   document.getElementById('mNoche').setAttribute('aria-pressed', noche); document.getElementById('mDia').setAttribute('aria-pressed', !noche);
-  stage.style.setProperty('--stage-bg', noche ? '#1d2d3d' : '#cfe9f8');
-  stage.style.setProperty('--stage-note', noche ? '#b5d9fd' : 'rgba(26, 25, 21, 0.55)');
-  stage._hemi.intensity = noche ? 0.32 : 1.0; stage._hemi.color.setHex(noche ? 0x94bce3 : 0xffffff); stage._hemi.groundColor.setHex(noche ? 0x1d2d3d : 0xd4e3f0);
-  stage._key.intensity = noche ? 0.55 : 1.65; stage._key.color.setHex(noche ? 0xb5d9fd : 0xffffff);
-  stage._fill.intensity = noche ? 0.16 : 0.5;
-  lampBase = noche ? 80 : 0; salaBase = noche ? 120 : 0; farolBase = noche ? 75 : 0; M.farol.emissiveIntensity = noche ? 1.6 : 0.4; faroles.forEach(l => l.intensity = farolBase);
-  ledBase.ei = noche ? 2.4 : 1.2; M.lampara.emissiveIntensity = noche ? 1.8 : 0.4;
-  M.lampWarm.emissiveIntensity = noche ? 1.6 : 0.35; lucesNoc.forEach(l => l.intensity = noche ? 1.1 : 0.2);
+  const bg = noche ? '#0a0a0a' : '#d8e6f2';
+  stage.style.setProperty('--stage-bg', bg);
+  stage.style.setProperty('--stage-note', noche ? '#c9b6df' : 'rgba(26, 25, 21, 0.5)');
+  stage.style.setProperty('--stage-toolbar-bg', noche ? 'rgba(10, 10, 10, 0.78)' : 'rgba(255, 255, 255, 0.92)');
+  stage.style.setProperty('--stage-toolbar-ink', noche ? '#f4f7ff' : '#2c4a64');
+  stage.style.setProperty('--stage-toolbar-border', noche ? 'rgba(244, 247, 255, 0.14)' : 'rgba(29, 45, 61, 0.14)');
+  stage._hemi.intensity = noche ? 0.38 : 0.95; stage._hemi.color.setHex(noche ? 0xb497cf : 0xe8f0f8); stage._hemi.groundColor.setHex(noche ? 0x0a0a0a : 0xc0ccd8);
+  stage._key.intensity = noche ? 0.68 : 1.85; stage._key.color.setHex(noche ? 0xd7c6ea : 0xfff4ea);
+  stage._fill.intensity = noche ? 0.2 : 0.52;
+  if (stage._rim) { stage._rim.intensity = noche ? 0.18 : 0.32; stage._rim.color.setHex(0xd7c6ea); }
+  lampBase = noche ? 80 : 0; salaBase = noche ? 120 : 0; farolBase = noche ? 75 : 0; M.farol.emissiveIntensity = noche ? 1.55 : 0.35; faroles.forEach(l => l.intensity = farolBase);
+  ledBase.ei = noche ? 2.2 : 1.15; M.lampara.emissiveIntensity = noche ? 1.7 : 0.35;
+  M.lampWarm.emissiveIntensity = noche ? 1.5 : 0.3; lucesNoc.forEach(l => l.intensity = noche ? 1.05 : 0.18);
   if (!anim) setLeds(true);
   if (entropiaK > 0) aplicarDeterioro(entropiaK);
 }
@@ -1860,6 +941,4 @@ document.getElementById('mDia').onclick = () => setModo(false);
 document.getElementById('mNoche').onclick = () => setModo(true);
 setModo(new URLSearchParams(location.search).has('dia') ? false : true);
 window.datacenter = { root: ROOT, subsystems: SUB, materials: M, THREE, stage, simularRayo, setModo, zoomTermometro, animarJerarquia, animarComplejidad, animarFlujo, animarEmergencia, animarAdaptabilidad, animarEntropia, animarNeguentropia, animarHomeostasis, animarEquilibrio, animarRetroalimentacion, animarRecursividad, animarComplementariedad, animarMulticausalidad, aplicarDeterioro, elevarSitio, mostrarFilas };
-</script>
-</body>
-</html>
+}
