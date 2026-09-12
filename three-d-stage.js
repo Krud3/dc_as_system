@@ -212,17 +212,21 @@
         import('three/addons/controls/OrbitControls.js'),
       ]);
       this._THREE = THREE;
-      // preserveDrawingBuffer keeps the last frame readable after
-      // compositing (toDataURL / drawImage) — it's what lets the
-      // screenshot tools capture the scene instead of a blank canvas.
+      // preserveDrawingBuffer: captura de screenshots del host.
+      // antialias solo si DPR bajo — con 1.5× el supersampling ya suaviza.
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: dpr < 1.25,
         alpha: true,
         preserveDrawingBuffer: true,
+        powerPreference: 'high-performance',
       });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(dpr);
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.12;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
       this._renderer = renderer;
       this.shadowRoot.insertBefore(renderer.domElement, this._err);
 
@@ -238,21 +242,27 @@
       controls.dampingFactor = 0.08;
       this._controls = controls;
 
-      // Neutral studio: soft sky/ground wash, a shadow-casting key light,
-      // and a dim fill from behind so silhouettes never go black.
-      this._hemi = new THREE.HemisphereLight(0xffffff, 0xd8d2c4, 1.0);
+      // Ilustración isométrica suave: wash cielo/suelo, key cálida con sombra
+      // nítida y fill frío para que ningún volumen quede negro.
+      this._hemi = new THREE.HemisphereLight(0xeaf4ff, 0xcfd8e3, 1.05);
       scene.add(this._hemi);
-      const key = new THREE.DirectionalLight(0xffffff, 2.2);
-      key.position.set(4, 7, 5);
+      const key = new THREE.DirectionalLight(0xfff6ea, 2.35);
+      key.position.set(18, 26, 14);
       key.castShadow = true;
-      key.shadow.mapSize.set(2048, 2048);
-      key.shadow.bias = -0.0002;
+      // 1024 es suficiente para maqueta; 4096+PCFSoft era el mayor coste de FPS.
+      key.shadow.mapSize.set(1024, 1024);
+      key.shadow.bias = -0.0003;
+      key.shadow.normalBias = 0.035;
+      key.shadow.radius = 2;
       this._key = key;
       scene.add(key);
-      const fill = new THREE.DirectionalLight(0xfff4e6, 0.5);
-      fill.position.set(-5, 3, -4);
+      const fill = new THREE.DirectionalLight(0xd6e9ff, 0.65);
+      fill.position.set(-14, 9, -12);
       this._fill = fill;
       scene.add(fill);
+      const rim = new THREE.DirectionalLight(0xffffff, 0.35);
+      rim.position.set(-6, 8, 16);
+      scene.add(rim);
 
       const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(200, 200),
@@ -310,11 +320,29 @@
       if (!THREE) throw new Error('three-d-stage: not ready — await stage.ready first');
       if (this._object) this._scene.remove(this._object);
       this._object = object;
+      // Sombras selectivas: solo volúmenes medianos/grandes proyectan.
+      // LEDs, ventanas, bordes y deco fina no entran al shadow map.
+      const _size = new THREE.Vector3();
+      const skipCast =
+        /(_led|_luz|ventana|win_|barrote|riel_|marca_|pulso|hilo|rayo|calor_|humo|lluvia|nube_|escombro|sticker|peldano|aislador)/i;
       object.traverse((o) => {
-        if (o.isMesh) {
-          o.castShadow = true;
-          o.receiveShadow = true;
+        if (!o.isMesh) return;
+        if (o.isLineSegments || o.isLine || o.isPoints) {
+          o.castShadow = false;
+          o.receiveShadow = false;
+          return;
         }
+        const geo = o.geometry;
+        if (geo && !geo.boundingBox) geo.computeBoundingBox();
+        let maxDim = 0;
+        if (geo && geo.boundingBox) {
+          geo.boundingBox.getSize(_size);
+          maxDim = Math.max(_size.x, _size.y, _size.z);
+        }
+        const tiny = maxDim > 0 && maxDim < 0.22;
+        const noCast = tiny || skipCast.test(o.name || '');
+        o.castShadow = !noCast;
+        o.receiveShadow = maxDim >= 0.4 || /^(terreno|placa_|piso_)/.test(o.name || '');
       });
       const box = new THREE.Box3().setFromObject(object);
       if (!box.isEmpty()) {
