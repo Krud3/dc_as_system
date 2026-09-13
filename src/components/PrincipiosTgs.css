@@ -1,0 +1,228 @@
+.principios {
+  --p-bg: #0A0A0A;
+  --p-card: #0c0c0c;
+  --p-ink: #fff;
+  --p-muted: #9a9a9a;
+  --p-line: #2a2a2a;
+  --p-icon-bg: #161616;
+
+  --p-card-light: #ffffff;
+  --p-ink-light: #0a0a0a;
+  --p-muted-light: #4a4a4a;
+  --p-line-light: #e0e0e0;
+  --p-icon-bg-light: #efefef;
+  --p-ejemplo-light: #3a3a3a;
+
+  padding: clamp(72px, 10vw, 120px) clamp(20px, 4vw, 48px) clamp(88px, 12vw, 140px);
+  background: var(--p-bg);
+  color: var(--p-ink);
+}
+
+.principios__header {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: clamp(24px, 4vw, 64px);
+  align-items: start;
+  max-width: 72rem;
+  margin: 0 auto clamp(48px, 6vw, 72px);
+}
+
+.principios__title {
+  margin: 0;
+  min-width: 0;
+}
+
+.principios__stroke {
+  --stroke-text-height: clamp(52px, 9vw, 88px);
+}
+
+.principios__stroke .stroke-text__svg {
+  height: var(--stroke-text-height);
+}
+
+.principios__lead {
+  margin: 0;
+  max-width: 22rem;
+  justify-self: end;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--p-muted);
+}
+
+.principios__grid {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 72rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.principios__item {
+  min-height: 100%;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
+}
+
+.principios__card {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--p-line);
+  border-radius: 22px;
+  cursor: pointer;
+  transition: border-color 160ms ease;
+}
+
+.principios__card:hover,
+.principios__card.is-open {
+  border-color: #3d3d3d;
+}
+
+.principios__card[data-active='true'] {
+  border-color: var(--p-line-light);
+}
+
+.principios__card:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.principios__face {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  padding: 28px 28px 24px;
+  text-align: left;
+}
+
+.principios__face--dark {
+  background: var(--p-card);
+  color: var(--p-ink);
+}
+
+.principios__face--light {
+  background: var(--p-card-light);
+  color: var(--p-ink-light);
+}
+
+.principios__face--light .principios__icon {
+  background: var(--p-icon-bg-light);
+  color: var(--p-ink-light);
+}
+
+.principios__face--light .principios__num,
+.principios__face--light .principios__aplicacion {
+  color: var(--p-muted-light);
+}
+
+.principios__face--light .principios__name {
+  color: var(--p-ink-light);
+}
+
+.principios__face--light .principios__ejemplo > p {
+  color: var(--p-ejemplo-light);
+}
+
+.principios__card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.principios__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--p-icon-bg);
+  color: var(--p-ink);
+}
+
+.principios__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.principios__num {
+  font-family: var(--font-heading, sans-serif);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--p-muted);
+  letter-spacing: 0.04em;
+}
+
+.principios__name {
+  margin: 0 0 12px;
+  font-family: var(--font-heading, sans-serif);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--p-ink);
+}
+
+.principios__aplicacion {
+  margin: 0;
+  flex: 1;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--p-muted);
+}
+
+.principios__ejemplo {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 220ms ease, opacity 180ms ease, margin 220ms ease;
+  margin-top: 0;
+}
+
+.principios__ejemplo.is-visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 16px;
+}
+
+.principios__ejemplo > p {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #c8c8c8;
+}
+
+@media (max-width: 960px) {
+  .principios__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .principios__header {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .principios__lead {
+    justify-self: start;
+    max-width: none;
+  }
+
+  .principios__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .principios__card,
+  .principios__ejemplo {
+    transition: none;
+  }
+}
