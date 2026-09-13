@@ -77,35 +77,42 @@
     canvas { display: block; outline: none; }
     .toolbar {
       position: absolute;
-      right: 16px;
-      bottom: 16px;
+      right: 18px;
+      bottom: 18px;
       display: flex;
       gap: 8px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: "Google Sans Flex", system-ui, sans-serif;
     }
     .toolbar button {
       appearance: none;
-      border: 1px solid rgba(20, 20, 19, 0.18);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.92);
-      color: #1a1915;
+      border: 1px solid var(--stage-toolbar-border, rgba(29, 45, 61, 0.14));
+      border-radius: 999px;
+      background: var(--stage-toolbar-bg, rgba(255, 255, 255, 0.92));
+      color: var(--stage-toolbar-ink, #2c4a64);
       font-family: inherit;
-      font-size: 12.5px;
-      font-weight: 500;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       line-height: 1;
-      padding: 9px 12px;
+      padding: 9px 14px;
       cursor: default;
+      box-shadow: 0 8px 24px rgba(29, 45, 61, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
     }
-    .toolbar button:hover { background: #fff; }
-    .toolbar button:active { transform: translateY(1px); }
+    .toolbar button:hover { filter: brightness(1.06); transform: translateY(-1px); }
+    .toolbar button:active { transform: translateY(0); }
     .toolbar button[disabled] { opacity: 0.5; pointer-events: none; }
     .note {
       position: absolute;
-      right: 16px;
-      bottom: 56px;
+      right: 18px;
+      bottom: 58px;
       text-align: right;
       max-width: 60%;
-      font: 400 12px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font: 500 11px/1.5 "Google Sans Flex", system-ui, sans-serif;
+      letter-spacing: 0.02em;
       color: var(--stage-note, rgba(26, 25, 21, 0.55));
       user-select: none;
     }
@@ -116,7 +123,7 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
-      font: 500 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font: 500 14px/1.6 "Google Sans Flex", system-ui, sans-serif;
       color: #8a2f20;
       text-align: center;
       white-space: pre-line;
@@ -212,17 +219,21 @@
         import('three/addons/controls/OrbitControls.js'),
       ]);
       this._THREE = THREE;
-      // preserveDrawingBuffer keeps the last frame readable after
-      // compositing (toDataURL / drawImage) — it's what lets the
-      // screenshot tools capture the scene instead of a blank canvas.
+      // preserveDrawingBuffer: captura de screenshots del host.
+      // antialias solo si DPR bajo — con 1.5× el supersampling ya suaviza.
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: dpr < 1.25,
         alpha: true,
         preserveDrawingBuffer: true,
+        powerPreference: 'high-performance',
       });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(dpr);
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.04;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
       this._renderer = renderer;
       this.shadowRoot.insertBefore(renderer.domElement, this._err);
 
@@ -238,25 +249,31 @@
       controls.dampingFactor = 0.08;
       this._controls = controls;
 
-      // Neutral studio: soft sky/ground wash, a shadow-casting key light,
-      // and a dim fill from behind so silhouettes never go black.
-      this._hemi = new THREE.HemisphereLight(0xffffff, 0xd8d2c4, 1.0);
+      // Estudio suave: hemi frío, key cálida contenida, rim lilac (marca home).
+      this._hemi = new THREE.HemisphereLight(0xe8f0f8, 0xc0ccd8, 0.95);
       scene.add(this._hemi);
-      const key = new THREE.DirectionalLight(0xffffff, 2.2);
-      key.position.set(4, 7, 5);
+      const key = new THREE.DirectionalLight(0xfff4ea, 1.85);
+      key.position.set(16, 24, 12);
       key.castShadow = true;
-      key.shadow.mapSize.set(2048, 2048);
-      key.shadow.bias = -0.0002;
+      // 1024 es suficiente para maqueta; 4096+PCFSoft era el mayor coste de FPS.
+      key.shadow.mapSize.set(1024, 1024);
+      key.shadow.bias = -0.0003;
+      key.shadow.normalBias = 0.04;
+      key.shadow.radius = 2.5;
       this._key = key;
       scene.add(key);
-      const fill = new THREE.DirectionalLight(0xfff4e6, 0.5);
-      fill.position.set(-5, 3, -4);
+      const fill = new THREE.DirectionalLight(0xd4e2f4, 0.52);
+      fill.position.set(-14, 9, -12);
       this._fill = fill;
       scene.add(fill);
+      const rim = new THREE.DirectionalLight(0xd7c6ea, 0.32);
+      rim.position.set(-6, 8, 16);
+      this._rim = rim;
+      scene.add(rim);
 
       const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(200, 200),
-        new THREE.ShadowMaterial({ opacity: 0.18 })
+        new THREE.ShadowMaterial({ opacity: 0.22 })
       );
       ground.rotation.x = -Math.PI / 2;
       ground.receiveShadow = true;
@@ -279,8 +296,12 @@
       };
       fit();
       this._ro = new ResizeObserver(fit);
+      // _scriptedCamera: las animaciones de la escena mueven la cámara a mano;
+      // si OrbitControls.update() corre en paralelo (damping/autorotate) pelea
+      // el lerp y en planos cercanos mete la cámara dentro de la geometría.
+      this._scriptedCamera = false;
       this._loop = () => {
-        controls.update();
+        if (!this._scriptedCamera) controls.update();
         renderer.render(scene, camera);
       };
       // Detached while three.js was fetching? Stay idle — the
@@ -310,11 +331,29 @@
       if (!THREE) throw new Error('three-d-stage: not ready — await stage.ready first');
       if (this._object) this._scene.remove(this._object);
       this._object = object;
+      // Sombras selectivas: solo volúmenes medianos/grandes proyectan.
+      // LEDs, ventanas, bordes y deco fina no entran al shadow map.
+      const _size = new THREE.Vector3();
+      const skipCast =
+        /(_led|_luz|ventana|win_|barrote|riel_|marca_|pulso|hilo|rayo|calor_|humo|lluvia|nube_|escombro|sticker|peldano|aislador)/i;
       object.traverse((o) => {
-        if (o.isMesh) {
-          o.castShadow = true;
-          o.receiveShadow = true;
+        if (!o.isMesh) return;
+        if (o.isLineSegments || o.isLine || o.isPoints) {
+          o.castShadow = false;
+          o.receiveShadow = false;
+          return;
         }
+        const geo = o.geometry;
+        if (geo && !geo.boundingBox) geo.computeBoundingBox();
+        let maxDim = 0;
+        if (geo && geo.boundingBox) {
+          geo.boundingBox.getSize(_size);
+          maxDim = Math.max(_size.x, _size.y, _size.z);
+        }
+        const tiny = maxDim > 0 && maxDim < 0.22;
+        const noCast = tiny || skipCast.test(o.name || '');
+        o.castShadow = !noCast;
+        o.receiveShadow = maxDim >= 0.4 || /^(terreno|placa_|piso_)/.test(o.name || '');
       });
       const box = new THREE.Box3().setFromObject(object);
       if (!box.isEmpty()) {

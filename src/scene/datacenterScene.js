@@ -1,381 +1,59 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<title>Datacenter — sistema en 3D</title>
-<link rel="stylesheet" href="_ds/industry-248df370-ace1-48bd-a7e9-608338eb52eb/styles.css">
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.184.0/build/three.module.js",
-    "three/addons/controls/OrbitControls.js": "https://unpkg.com/three@0.184.0/examples/jsm/controls/OrbitControls.js",
-    "three/addons/exporters/OBJExporter.js": "https://unpkg.com/three@0.184.0/examples/jsm/exporters/OBJExporter.js",
-    "three/addons/exporters/GLTFExporter.js": "https://unpkg.com/three@0.184.0/examples/jsm/exporters/GLTFExporter.js"
-  },
-  "integrity": {
-    "https://unpkg.com/three@0.184.0/build/three.module.js": "sha384-8FCZ1eVO6it4+pbec2aDtnTrwjWXZLJRC+MAGCIPDgsYnUrl/E0A2YlF8ioMKI/J",
-    "https://unpkg.com/three@0.184.0/build/three.core.js": "sha384-dw2ooPewaEIrAgl6oFDBmmBWCE9oW9LxRGcfwZ0hLvEprzo202wXl7vCYHRlSnOT",
-    "https://unpkg.com/three@0.184.0/examples/jsm/controls/OrbitControls.js": "sha384-4rziNxOBZKQ69i+w+f89KJ55TCYquwchVbByQwmaOeIOXdOU2PLDn3kOfXHwIJC9",
-    "https://unpkg.com/three@0.184.0/examples/jsm/exporters/OBJExporter.js": "sha384-nbwtoZENJD3Vq+ACK0CuGQdPMuDWHkamC2KJD70EV5nfg6jQjfppKOea07YJN+N3",
-    "https://unpkg.com/three@0.184.0/examples/jsm/exporters/GLTFExporter.js": "sha384-VofkvpG6HERhFCYbsUOHeNXBCqID2nfqkQqnVzE1jc/oPcz+qJ13ADdXH08hE+cQ"
-  }
-}
-</script>
-<style>
-  html,body{margin:0;height:100%;background:var(--color-bg);font-family:var(--font-body);color:var(--color-text)}
-  three-d-stage:not(:defined){visibility:hidden}
-  three-d-stage{display:block;width:100vw;height:100vh}
-  #panel{position:fixed;left:16px;top:16px;width:260px;max-height:calc(100vh - 32px);box-sizing:border-box;display:flex;flex-direction:column;padding:14px 16px;background:color-mix(in srgb,var(--color-bg) 88%,transparent);border:1px solid var(--color-text);transition:background .4s,color .4s}
-  #layers{overflow:auto;min-height:0;flex:1;scrollbar-width:thin}
-  body.noche #panel{background:color-mix(in srgb,#1d2d3d 82%,transparent);color:#f2f2f3;border-color:#94bce3}
-  body.noche #panel p,body.noche #sel{color:#b5d9fd}
-  body.noche #panel .k,body.noche #estado,body.noche .btn-rayo{color:#b5d9fd}
-  body.noche .corner::before,body.noche .corner::after{background:#94bce3}
-  body.noche .btn-rayo:hover{background:#2c455d}
-  #panel h1{font-family:var(--font-heading);font-weight:600;font-size:20px;line-height:1.1;margin:0 0 2px;text-transform:uppercase;letter-spacing:.02em}
-  #panel p{margin:0 0 10px;font-size:12px;color:var(--color-neutral-700)}
-  #panel label{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0;cursor:pointer}
-  #panel .nocheck{width:13px;height:13px;flex:none}
-  #panel .k{width:18px}
-  #panel label.row{justify-content:space-between}
-  #panel label .lbl{display:flex;align-items:center;gap:8px}
-  .btn-rayo{position:relative;font-family:var(--font-heading);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--color-accent);background:transparent;color:var(--color-accent-700);cursor:pointer}
-  .btn-rayo:hover{background:var(--color-accent-100)}
-  .btn-rayo:active{background:var(--color-accent-200)}
-  .btn-rayo:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
-  .btn-rayo:disabled{opacity:.45;cursor:default}
-  #estado{font-family:var(--font-heading);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--color-accent-700);margin-top:8px;min-height:14px}
-  #panel input{accent-color:var(--color-accent);margin:0}
-  #panel .k{font-family:var(--font-heading);font-size:11px;color:var(--color-accent-700);width:14px}
-  #sel{margin-top:10px;padding-top:8px;border-top:1px solid var(--color-divider);font-size:12px;min-height:30px;max-height:120px;overflow:auto;flex:none}
-  .modo{display:flex;gap:0;margin:0 0 10px;border:1px solid var(--color-accent)}
-  .modo button{flex:1;font-family:var(--font-heading);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:4px 0;border:0;background:transparent;color:inherit;cursor:pointer}
-  .modo button[aria-pressed="true"]{background:var(--color-accent);color:#f2f2f3}
-  .modo button:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
-  #sel b{font-family:var(--font-heading);font-size:15px;font-weight:600;display:block}
-  .corner{position:absolute;width:9px;height:9px;pointer-events:none}
-  .corner::before,.corner::after{content:"";position:absolute;background:var(--color-text)}
-  .corner::before{left:4px;top:0;width:1px;height:9px}.corner::after{top:4px;left:0;width:9px;height:1px}
-  .tl{left:-5px;top:-5px}.tr{right:-5px;top:-5px}.bl{left:-5px;bottom:-5px}.br{right:-5px;bottom:-5px}
-</style>
-</head>
-<body>
-<three-d-stage name="datacenter" background="#f2f2f3" autorotate></three-d-stage>
-<aside id="panel"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-  <h1>Datacenter como sistema</h1>
-  <p>19 principios TGS · clic en un objeto para identificarlo</p>
-  <div class="modo" role="group" aria-label="Iluminación"><button id="mDia" aria-pressed="false">Día</button><button id="mNoche" aria-pressed="true">Noche</button></div>
-  <div id="layers"></div>
-  <div id="estado"></div>
-  <div id="sel">—</div>
-</aside>
-<script src="./three-d-stage.js"></script>
-<script type="module">
-const stage = document.querySelector('three-d-stage');
+/** Escena datacenter (Three.js imperativo). Montada desde React sin R3F. */
+import { createMaterials } from './materials.js';
+import { createPrimitives } from './primitives.js';
+import { createRootHierarchy, createCampusLayout } from './layout.js';
+import { createPlantSystem } from './plants.js';
+import { buildEntorno } from './build/entorno.js';
+import { buildFrontera } from './build/frontera.js';
+import { buildProcesos } from './build/procesos.js';
+import { buildEntradas } from './build/entradas.js';
+import { buildSalidas } from './build/salidas.js';
+import { buildRetroalimentacion } from './build/retroalimentacion.js';
+import { buildResiliencia } from './build/resiliencia.js';
+import { buildProps } from './build/props.js';
+import { createScriptedCamera } from './cameraScripted.js';
+import { easeInOutCubic } from './ease.js';
+
+/**
+ * @param {HTMLElement} stage — instancia de <three-d-stage> ya en el DOM
+ */
+export async function mountDatacenterScene(stage) {
 const { THREE } = await stage.ready;
 
-const mat = (name, color, roughness = 0.7, metalness = 0.1, extra = {}) =>
-  Object.assign(new THREE.MeshStandardMaterial({ color, roughness, metalness, ...extra }), { name });
+const { M, mat } = createMaterials(THREE);
+const { box, cyl, line, decoBox, decoCyl, aspas } = createPrimitives(THREE, M);
+const { ROOT, SUB } = createRootHierarchy(THREE);
+const layout = createCampusLayout();
+const { placePlant, plantsReady } = createPlantSystem(THREE, SUB.entorno);
 
-// Industry palette only
-const M = {
-  paper: mat('paper', 0xf5f5f8, 0.9, 0),          // neutral-100
-  ground: mat('ground', 0xe7e7ea, 0.95, 0),       // neutral-200 (terreno)
-  concrete: mat('concrete', 0xd4d4d7, 0.85, 0),   // neutral-300
-  grey: mat('grey', 0x98989b, 0.8, 0.05),         // neutral-500
-  steel: mat('steel', 0x5980a6, 0.5, 0.3),        // accent
-  steelLight: mat('steel_light', 0x94bce3, 0.5, 0.2), // accent-400
-  deepSteel: mat('deep_steel', 0x1d2d3d, 0.6, 0.2),   // accent-900
-  ink: mat('ink', 0x1d1f20, 0.6, 0.1),            // text
-  led: mat('led', 0xb5d9fd, 0.4, 0, { emissive: 0x94bce3, emissiveIntensity: 1.6 }),
-  heat: mat('heat', 0xb5d9fd, 1, 0, { transparent: true, opacity: 0.35, depthWrite: false }),
-  water: mat('water', 0x749dc4, 0.3, 0.1),        // accent-500
+const ctx = {
+  THREE, ROOT, SUB, M, mat,
+  box, cyl, line, decoBox, decoCyl, aspas,
+  placePlant, plantsReady,
+  ...layout,
 };
 
-// Subsystem groups — the hierarchy exported to GLB and used by the UI
-const ROOT = new THREE.Group(); ROOT.name = 'datacenter';
-const SUB = {};
-const subsystems = [
-  ['entorno', 'Entorno', 'Terreno, red eléctrica, ciudad y atmósfera que rodean al sistema'],
-  ['frontera', 'Frontera', 'Cerco perimetral y placa del sitio: qué pertenece y qué no'],
-  ['entradas', 'Entradas', 'Energía (línea + transformador), agua y fibra óptica que ingresan'],
-  ['procesos', 'Procesos', 'Sala de racks, UPS y climatización que transforman energía en cómputo'],
-  ['salidas', 'Salidas', 'Calor disipado, datos que salen por fibra, residuos electrónicos'],
-  ['retroalimentacion', 'Retroalimentación', 'Sensores y sala NOC que monitorean y corrigen'],
-  ['resiliencia', 'Resiliencia', 'Generador, tanque y segunda acometida: redundancia ante fallos'],
-];
-for (const [k, label, desc] of subsystems) { const g = new THREE.Group(); g.name = k; g.userData = { label, desc }; ROOT.add(g); SUB[k] = g; }
+buildEntorno(ctx);
+buildFrontera(ctx);
+buildProcesos(ctx);
+buildEntradas(ctx);
+buildSalidas(ctx);
+buildRetroalimentacion(ctx);
+buildResiliencia(ctx);
+buildProps(ctx);
 
-const box = (parent, name, m, w, h, d, x, y, z, ry = 0) => {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
-  mesh.name = name; mesh.position.set(x, y, z); mesh.rotation.y = ry; parent.add(mesh); return mesh;
-};
-const cyl = (parent, name, m, r, h, x, y, z, seg = 40, rot = null) => {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), m);
-  mesh.name = name; mesh.position.set(x, y, z); if (rot) mesh.rotation.set(...rot); parent.add(mesh); return mesh;
-};
-const line = (parent, name, m, a, b, r = 0.03) => {
-  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b);
-  const len = A.distanceTo(B), mid = A.clone().add(B).multiplyScalar(0.5);
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), m);
-  mesh.name = name; mesh.position.copy(mid);
-  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize());
-  parent.add(mesh); return mesh;
-};
+const {
+  E, P, I, R, S,
+  rayo, faroles, ciudadNueva,
+  filas, filasIniciales, rows, perRow, rackH, fy, zFila,
+  lucesNoc, humo, lamparas, luzSala, luzGen,
+  termo, bladeRef, rackRef, chipRef, sitioDr,
+  W, D, y0, HX, HZ, HW, HD, RY,
+  UX, UZ, TX, TZ, WX, WZ, MX, MZ, NX, NZ, chillerPos,
+} = ctx;
 
-// ===== ENTORNO =====
-const E = SUB.entorno;
-box(E, 'terreno', M.ground, 70, 0.2, 50, 0, 0.1, 0);
-// Rayo (oculto hasta la animación)
-M.rayo = mat('rayo', 0xeef6ff, 0.2, 0, { emissive: 0xb5d9fd, emissiveIntensity: 2, transparent: true, opacity: 0 });
-const rayo = new THREE.Group(); rayo.name = 'rayo'; rayo.visible = false; E.add(rayo);
-{ const pts = [[30, 30, -14], [31.5, 24, -13], [29.5, 18, -14.5], [30.8, 13, -13.6], [30, 9, -14]];
-  for (let i = 0; i < pts.length - 1; i++) line(rayo, `rayo_seg_${i + 1}`, M.rayo, pts[i], pts[i + 1], 0.09);
-  line(rayo, 'rayo_rama', M.rayo, [29.5, 18, -14.5], [26.5, 14, -16.5], 0.05); }
-box(E, 'via_publica', M.grey, 70, 0.02, 4, 0, 0.21, 20);
-// Alumbrado público (depende de la red externa)
-M.farol = mat('farol', 0xeef6ff, 0.3, 0, { emissive: 0xb5d9fd, emissiveIntensity: 1.6 });
-const faroles = [];
-[-30, -20, -10, 0, 10, 20, 30].forEach((x, i) => {
-  box(E, `farol_${i + 1}_poste`, M.deepSteel, 0.14, 4.5, 0.14, x, 0.2 + 2.25, 22.4);
-  box(E, `farol_${i + 1}_brazo`, M.deepSteel, 0.1, 0.1, 1.2, x, 0.2 + 4.45, 21.9);
-  box(E, `farol_${i + 1}_lampara`, M.farol, 0.5, 0.1, 0.3, x, 0.2 + 4.4, 21.3);
-  const pl = new THREE.PointLight(0xb5d9fd, 0, 12, 1.6); pl.position.set(x, 0.2 + 4.1, 21.2); pl.name = `farol_${i + 1}_luz`; E.add(pl); faroles.push(pl);
-});
-// Torre de alta tensión (red eléctrica externa)
-const tower = (x, z, n) => {
-  box(E, `${n}_mastil`, M.deepSteel, 0.3, 9, 0.3, x, 4.7, z);
-  box(E, `${n}_cruceta`, M.deepSteel, 3.2, 0.15, 0.15, x, 8.6, z);
-  box(E, `${n}_cruceta_2`, M.deepSteel, 2.4, 0.15, 0.15, x, 7.4, z);
-};
-tower(30, -14, 'torre_at_1'); tower(30, 2, 'torre_at_2');
-line(E, 'linea_at', M.ink, [30, 8.7, -14], [30, 8.7, 2]);
-// Edificios de la ciudad (usuarios de los datos)
-box(E, 'ciudad_1', M.concrete, 5, 7, 5, -28, 3.7, -16);
-box(E, 'ciudad_2', M.concrete, 4, 10, 4, -22, 5.2, -19);
-box(E, 'ciudad_3', M.concrete, 6, 5, 4, -30, 2.7, -8);
-// Edificios de crecimiento (aparecen en la animación de Complejidad)
-const ciudadNueva = [[-33, 8, 4, -14, 4], [-25, 12, 4, -12, 4], [-32, 6, 5, -2, 5], [-20, 9, 3.5, -22, 3.5], [-27, 14, 4, -22, 4], [-33, 9, 4, -20, 4], [-36, 6, 4, -8, 4], [-26, 16, 3.5, -4, 3.5]]
-  .map(([x, h, w, z, d], i) => { const b = box(E, `ciudad_nueva_${i + 1}`, M.concrete, w, h, d, x, 0.2 + h / 2, z); b.visible = false; b.userData.h = h; return b; });
-// Árboles (ambiente natural)
-[[-34, 4], [-31, 8], [-30, 16], [26, 16], [32, 10], [-18, 18]].forEach(([x, z], i) => {
-  cyl(E, `arbol_${i + 1}_tronco`, M.grey, 0.18, 1.6, x, 1.0, z, 12);
-  const c = new THREE.Mesh(new THREE.SphereGeometry(1.4, 20, 14), M.steelLight); c.name = `arbol_${i + 1}_copa`; c.position.set(x, 2.9, z); E.add(c);
-});
+const { lockScriptedCam, unlockScriptedCam, aimScriptedCam } = createScriptedCamera(stage);
 
-// ===== FRONTERA =====
-const F = SUB.frontera;
-const W = 44, D = 30, T = 0.3;
-box(F, 'placa_sitio', M.paper, W, T, D, 0, 0.2 + T / 2, 0);
-const y0 = 0.2 + T;
-// Cerco perimetral
-const fenceH = 2.2, inset = 0.6;
-const px = W / 2 - inset, pz = D / 2 - inset;
-const postsAlong = (from, to, fixed, axis, n, tag) => {
-  for (let i = 0; i <= n; i++) {
-    const t = from + (to - from) * i / n;
-    const [x, z] = axis === 'x' ? [t, fixed] : [fixed, t];
-    if (tag === 'sur' && Math.abs(x) < 3) continue; // portón
-    box(F, `cerco_${tag}_poste_${i + 1}`, M.deepSteel, 0.1, fenceH, 0.1, x, y0 + fenceH / 2, z);
-  }
-};
-postsAlong(-px, px, -pz, 'x', 22, 'norte'); postsAlong(-px, px, pz, 'x', 22, 'sur');
-postsAlong(-pz, pz, -px, 'z', 15, 'oeste'); postsAlong(-pz, pz, px, 'z', 15, 'este');
-[0.6, 1.4, 2.15].forEach((h, i) => {
-  box(F, `cerco_norte_riel_${i + 1}`, M.steel, W - 2 * inset, 0.04, 0.04, 0, y0 + h, -pz);
-  box(F, `cerco_sur_riel_${i + 1}_a`, M.steel, (W - 2 * inset) / 2 - 3, 0.04, 0.04, -(W - 2 * inset) / 4 - 1.5, y0 + h, pz);
-  box(F, `cerco_sur_riel_${i + 1}_b`, M.steel, (W - 2 * inset) / 2 - 3, 0.04, 0.04, (W - 2 * inset) / 4 + 1.5, y0 + h, pz);
-  box(F, `cerco_oeste_riel_${i + 1}`, M.steel, 0.04, 0.04, D - 2 * inset, -px, y0 + h, 0);
-  box(F, `cerco_este_riel_${i + 1}`, M.steel, 0.04, 0.04, D - 2 * inset, px, y0 + h, 0);
-});
-box(F, 'porton', M.steel, 6, 2.0, 0.08, 0, y0 + 1.0, pz);
-box(F, 'caseta_vigilancia', M.concrete, 2.2, 2.6, 2.2, 4.8, y0 + 1.3, pz - 1.6);
-// Marcas de registro "+"
-[[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) => {
-  const cx = sx * (W / 2 - 0.25), cz = sz * (D / 2 - 0.25);
-  box(F, `marca_${i + 1}_h`, M.steel, 0.5, 0.02, 0.04, cx, y0 + 0.011, cz);
-  box(F, `marca_${i + 1}_v`, M.steel, 0.04, 0.02, 0.5, cx, y0 + 0.012, cz);
-});
-
-// ===== PROCESOS: sala de datos =====
-const P = SUB.procesos;
-const HX = -5, HZ = -1; // centro de la sala
-const HW = 20, HD = 12, HH = 4, WT = 0.25;
-box(P, 'sala_muro_norte', M.concrete, HW, HH, WT, HX, y0 + HH / 2, HZ - HD / 2 + WT / 2);
-box(P, 'sala_muro_oeste', M.concrete, WT, HH, HD, HX - HW / 2 + WT / 2, y0 + HH / 2, HZ);
-box(P, 'sala_muro_este', M.concrete, WT, HH, HD, HX + HW / 2 - WT / 2, y0 + HH / 2, HZ);
-box(P, 'sala_antepecho_sur', M.concrete, HW, 0.6, WT, HX, y0 + 0.3, HZ + HD / 2 - WT / 2);
-box(P, 'piso_tecnico', M.concrete, HW - 2 * WT, 0.15, HD - 2 * WT, HX, y0 + 0.075, HZ);
-const RY = y0 + HH + 0.05;
-box(P, 'cubierta', M.deepSteel, HW + 0.6, 0.2, HD + 0.6, HX, RY + 0.1, HZ);
-[[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) =>
-  box(P, `columna_${i + 1}`, M.deepSteel, 0.3, HH, 0.3, HX + sx * (HW / 2 + 0.15), y0 + HH / 2, HZ + sz * (HD / 2 + 0.15)));
-// Racks (recursividad: servidor → rack → fila → sala)
-const rackW = 0.6, rackH = 2.0, rackD = 1.0, gap = 0.05, rows = 6, filasIniciales = 2, perRow = 8, rowPitch = 1.75, rackPitch = rackW + gap;
-const fy = y0 + 0.15;
-const filas = [], zFila = r => HZ - HD / 2 + 1.5 + r * rowPitch;
-for (let r = 0; r < rows; r++) {
-  const fila = new THREE.Group(); fila.name = `fila_${r + 1}`; P.add(fila); filas.push(fila);
-  const z = zFila(r);
-  for (let c = 0; c < perRow; c++) {
-    const x = HX - ((perRow - 1) * rackPitch) / 2 + c * rackPitch;
-    const rack = new THREE.Group(); rack.name = `rack_${r + 1}_${c + 1}`; fila.add(rack);
-    box(rack, `${rack.name}_gabinete`, M.steel, rackW, rackH, rackD, x, fy + rackH / 2, z);
-    for (let s = 0; s < 6; s++) { // servidores
-      box(rack, `${rack.name}_servidor_${s + 1}`, M.ink, rackW - 0.08, 0.22, 0.02, x, fy + 0.3 + s * 0.29, z + rackD / 2 + 0.011);
-      box(rack, `${rack.name}_servidor_${s + 1}_led`, M.led, 0.05, 0.04, 0.01, x + 0.18, fy + 0.3 + s * 0.29, z + rackD / 2 + 0.026);
-    }
-  }
-  box(fila, `bandeja_cables_${r + 1}`, M.deepSteel, perRow * rackPitch + 0.4, 0.08, 0.3, HX, fy + rackH + 0.6, z);
-  fila.visible = r < filasIniciales;
-}
-// CRAC (climatización interior)
-for (let i = 0; i < 3; i++) {
-  const x = HX - 6 + i * 6;
-  box(P, `crac_${i + 1}`, M.deepSteel, 1.6, 2.2, 0.8, x, fy + 1.1, HZ - HD / 2 + WT + 0.45);
-  box(P, `crac_${i + 1}_rejilla`, M.concrete, 1.3, 1.0, 0.02, x, fy + 1.5, HZ - HD / 2 + WT + 0.86);
-}
-// Chillers de cubierta
-for (let i = 0; i < 4; i++) {
-  cyl(P, `chiller_${i + 1}`, M.concrete, 0.9, 0.7, HX - 6 + i * 4, RY + 0.55, HZ - 2.5);
-  cyl(P, `chiller_${i + 1}_ventilador`, M.deepSteel, 0.7, 0.04, HX - 6 + i * 4, RY + 0.92, HZ - 2.5);
-}
-box(P, 'uma_cubierta', M.concrete, 6, 1.0, 2.0, HX + 3, RY + 0.7, HZ + 3);
-// Sala UPS (baterías) anexa al este
-const UX = HX + HW / 2 + 2.6, UZ = HZ - 2;
-box(P, 'sala_ups', M.concrete, 4, 3, 5, UX, y0 + 1.5, UZ);
-box(P, 'sala_ups_cubierta', M.deepSteel, 4.4, 0.15, 5.4, UX, y0 + 3.08, UZ);
-for (let i = 0; i < 3; i++) box(P, `banco_baterias_${i + 1}`, M.steel, 0.8, 0.5, 1.2, UX - 1.2 + i * 1.2, y0 + 3.4, UZ);
-
-// ===== ENTRADAS =====
-const I = SUB.entradas;
-// Energía: acometida desde la torre → transformador → UPS
-const TX = UX + 4.5, TZ = UZ + 1;
-box(I, 'transformador', M.deepSteel, 1.8, 1.8, 1.4, TX, y0 + 0.9, TZ);
-for (let i = 0; i < 5; i++) box(I, `transformador_aleta_${i + 1}`, M.grey, 0.06, 1.4, 1.2, TX + 0.95, y0 + 0.9, TZ - 0.5 + i * 0.25);
-[-0.4, 0, 0.4].forEach((o, i) => cyl(I, `transformador_aislador_${i + 1}`, M.concrete, 0.08, 0.5, TX + o, y0 + 2.05, TZ, 12));
-box(I, 'poste_acometida', M.deepSteel, 0.22, 7, 0.22, TX + 3, y0 + 3.5, TZ - 4);
-line(I, 'acometida_electrica_1', M.ink, [30, 8.6, -6], [TX + 3, y0 + 7, TZ - 4]);
-line(I, 'acometida_electrica_2', M.ink, [TX + 3, y0 + 7, TZ - 4], [TX, y0 + 2.3, TZ]);
-line(I, 'alimentador_ups', M.ink, [TX - 0.9, y0 + 0.6, TZ], [UX + 2, y0 + 0.6, UZ], 0.05);
-// Agua: tanque + tubería hacia los chillers
-const WX = HX - HW / 2 - 4, WZ = HZ - 3;
-cyl(I, 'tanque_agua', M.water, 1.6, 3.2, WX, y0 + 1.6, WZ);
-cyl(I, 'tanque_agua_tapa', M.concrete, 1.62, 0.12, WX, y0 + 3.26, WZ);
-line(I, 'tuberia_agua_1', M.steel, [WX, y0 + 0.4, WZ], [HX - HW / 2 - 0.2, y0 + 0.4, WZ], 0.08);
-line(I, 'tuberia_agua_2', M.steel, [HX - HW / 2 - 0.2, y0 + 0.4, WZ], [HX - HW / 2 - 0.2, RY + 0.3, WZ], 0.08);
-line(I, 'tuberia_agua_3', M.steel, [HX - HW / 2 - 0.2, RY + 0.3, WZ], [HX - 6, RY + 0.3, HZ - 2.5], 0.08);
-// Fibra óptica: poste telecom fuera del cerco → sala meet-me
-const MX = HX - HW / 2 - 1.2, MZ = HZ + 3;
-box(I, 'sala_meet_me', M.concrete, 2.2, 2.6, 2.6, MX, y0 + 1.3, MZ);
-box(I, 'sala_meet_me_cubierta', M.deepSteel, 2.5, 0.12, 2.9, MX, y0 + 2.66, MZ);
-box(E, 'poste_telecom', M.deepSteel, 0.2, 6, 0.2, -30, y0 + 3, 10);
-line(I, 'fibra_entrada', M.steelLight, [-30, y0 + 6, 10], [MX, y0 + 2.7, MZ], 0.035);
-
-// ===== SALIDAS =====
-const O = SUB.salidas;
-// Calor disipado (plumas translúcidas sobre chillers y generador)
-for (let i = 0; i < 4; i++) {
-  const p = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.55, 2.4, 32, 1, true), M.heat);
-  p.name = `calor_chiller_${i + 1}`; p.position.set(HX - 6 + i * 4, RY + 2.2, HZ - 2.5); O.add(p);
-}
-// Datos hacia la ciudad (fibra de salida)
-line(O, 'fibra_salida_datos', M.steelLight, [MX, y0 + 2.5, MZ + 0.4], [-26, 7, -16], 0.035);
-// Residuos electrónicos: contenedor + área de carga
-box(O, 'contenedor_e_waste', M.steel, 2.4, 1.4, 1.5, HX - 4, y0 + 0.7, HZ + HD / 2 + 3.5);
-box(O, 'contenedor_e_waste_tapa', M.deepSteel, 2.5, 0.08, 1.6, HX - 4, y0 + 1.44, HZ + HD / 2 + 3.5);
-for (let i = 0; i < 3; i++) box(O, `rack_retirado_${i + 1}`, M.grey, 0.6, 0.4, 1.0, HX - 1 + i * 0.8, y0 + 0.2, HZ + HD / 2 + 3.5);
-// Agua caliente de retorno (drenaje)
-line(O, 'drenaje_agua', M.grey, [HX - HW / 2 - 0.2, y0 + 0.2, HZ + 2], [WX, y0 + 0.2, HZ + 2], 0.06);
-
-// ===== RETROALIMENTACIÓN =====
-const R = SUB.retroalimentacion;
-// NOC (sala de monitoreo) al frente, con pantalla
-const NX = HX + 4, NZ = HZ + HD / 2 + 4.5;
-box(R, 'noc', M.concrete, 6, 3, 4, NX, y0 + 1.5, NZ);
-box(R, 'noc_cubierta', M.deepSteel, 6.4, 0.15, 4.4, NX, y0 + 3.08, NZ);
-box(R, 'noc_ventana', M.steelLight, 4.2, 1.2, 0.03, NX, y0 + 1.8, NZ - 2.02);
-box(R, 'noc_pantalla', M.deepSteel, 2.4, 1.2, 0.08, NX, y0 + 1.9, NZ + 1.9);
-box(R, 'noc_pantalla_imagen', M.led, 2.2, 1.0, 0.01, NX, y0 + 1.9, NZ + 1.85);
-// Sensores de temperatura/humedad en las filas
-for (let r = 0; r < rows; r++) {
-  const s = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 12), M.led);
-  s.name = `sensor_fila_${r + 1}`; s.position.set(HX + (perRow * rackPitch) / 2 + 0.5, fy + rackH + 0.3, zFila(r)); R.add(s); s.visible = r < filasIniciales; filas[r].userData.sensor = s;
-}
-// Bus de datos de monitoreo (sensores → NOC)
-line(R, 'bus_monitoreo', M.steelLight, [HX + (perRow * rackPitch) / 2 + 0.5, fy + rackH + 0.3, HZ - HD / 2 + 1.8], [HX + (perRow * rackPitch) / 2 + 0.5, fy + rackH + 0.3, HZ + HD / 2 - 0.3], 0.025);
-line(R, 'bus_monitoreo_noc', M.steelLight, [HX + (perRow * rackPitch) / 2 + 0.5, fy + rackH + 0.3, HZ + HD / 2 - 0.3], [NX, y0 + 3.2, NZ], 0.025);
-// Estación meteorológica (lee el entorno)
-box(R, 'estacion_meteo_mastil', M.deepSteel, 0.08, 3, 0.08, HX + HW / 2 - 1, RY + 1.7, HZ + HD / 2 - 1);
-cyl(R, 'estacion_meteo_anemometro', M.steel, 0.35, 0.05, HX + HW / 2 - 1, RY + 3.2, HZ + HD / 2 - 1, 16);
-
-// ===== RESILIENCIA =====
-const S = SUB.resiliencia;
-const GX = TX, GZ = TZ + 6;
-box(S, 'generador', M.deepSteel, 1.8, 1.6, 4.0, GX, y0 + 0.8, GZ);
-cyl(S, 'generador_escape', M.grey, 0.12, 1.0, GX + 0.5, y0 + 2.1, GZ - 1.2, 12);
-M.humo = mat('humo', 0x98989b, 1, 0, { transparent: true, opacity: 0, depthWrite: false });
-const humo = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.15, 2.2, 24, 1, true), M.humo);
-humo.name = 'generador_humo'; humo.position.set(GX + 0.5, y0 + 3.7, GZ - 1.2); humo.visible = false; S.add(humo);
-M.genLed = mat('gen_led', 0x1d1f20, 0.5, 0, { emissive: 0x000000, emissiveIntensity: 1 });
-box(S, 'generador_indicador', M.genLed, 0.25, 0.25, 0.02, GX + 0.5, y0 + 1.2, GZ + 2.01);
-cyl(S, 'tanque_combustible', M.concrete, 0.7, 3.4, GX + 2.6, y0 + 0.7, GZ, 40, [Math.PI / 2, 0, 0]);
-[-1.2, 1.2].forEach((o, i) => box(S, `tanque_combustible_apoyo_${i + 1}`, M.deepSteel, 0.3, 0.35, 1.4, GX + 2.6, y0 + 0.17, GZ + o));
-line(S, 'alimentador_generador', M.ink, [GX, y0 + 0.5, GZ - 2], [UX + 2, y0 + 0.5, UZ + 1], 0.05);
-// Segunda acometida eléctrica (redundancia N+1)
-box(S, 'poste_acometida_2', M.deepSteel, 0.22, 7, 0.22, TX + 3, y0 + 3.5, TZ + 12);
-line(S, 'acometida_electrica_redundante', M.ink, [30, 8.6, 1.5], [TX + 3, y0 + 7, TZ + 12]);
-line(S, 'acometida_electrica_redundante_2', M.ink, [TX + 3, y0 + 7, TZ + 12], [TX, y0 + 2.3, TZ + 0.6]);
-// Extinción de incendios (cilindros de gas inerte)
-for (let i = 0; i < 4; i++) cyl(S, `cilindro_extincion_${i + 1}`, M.steel, 0.2, 1.5, HX + HW / 2 - 0.8, fy + 0.75, HZ + 3 + i * 0.5, 20);
-
-// Luminarias del sitio (alimentadas por la red interna)
-M.lampara = mat('lampara', 0xeef6ff, 0.3, 0, { emissive: 0xb5d9fd, emissiveIntensity: 1.8 });
-const lamparas = [];
-[[-16, -10], [-16, 10], [16, -10], [16, 10], [0, 12]].forEach(([x, z], i) => {
-  box(F, `luminaria_${i + 1}_poste`, M.deepSteel, 0.12, 5, 0.12, x, y0 + 2.5, z);
-  box(F, `luminaria_${i + 1}_lampara`, M.lampara, 0.6, 0.12, 0.3, x, y0 + 5.05, z);
-  const pl = new THREE.PointLight(0xb5d9fd, 0, 14, 1.6); pl.position.set(x, y0 + 4.8, z); pl.name = `luminaria_${i + 1}_luz`; F.add(pl); lamparas.push(pl);
-});
-// Luz interior de la sala
-const luzSala = new THREE.PointLight(0x94bce3, 0, 22, 1.4); luzSala.position.set(HX, y0 + 3.5, HZ); luzSala.name = 'luz_sala'; P.add(luzSala);
-const luzGen = new THREE.PointLight(0xb5d9fd, 0, 8, 1.6); luzGen.position.set(GX, y0 + 2.5, GZ); luzGen.name = 'luz_generador'; S.add(luzGen);
-
-// ===== Termómetro en un servidor (Equifinalidad) =====
-const servidorRef = ROOT.getObjectByName('rack_2_4_servidor_4');
-const termo = new THREE.Group(); termo.name = 'termometro'; P.add(termo);
-{ const p = servidorRef.getWorldPosition(new THREE.Vector3());
-  const tx = p.x - 0.12, ty = p.y, tz = p.z + 0.035;
-  M.vidrio = mat('vidrio', 0xf5f5f8, 0.2, 0);
-  M.mercurio = mat('mercurio', 0x94bce3, 0.3, 0, { emissive: 0x94bce3, emissiveIntensity: 1.2 });
-  box(termo, 'termometro_placa', M.deepSteel, 0.2, 0.2, 0.01, tx, ty, tz);
-  cyl(termo, 'termometro_tubo', M.vidrio, 0.014, 0.15, tx - 0.06, ty + 0.01, tz + 0.008, 16);
-  const bulbo = new THREE.Mesh(new THREE.SphereGeometry(0.024, 16, 12), M.mercurio); bulbo.name = 'termometro_bulbo'; bulbo.position.set(tx - 0.06, ty - 0.065, tz + 0.008); termo.add(bulbo);
-  const columna = cyl(termo, 'termometro_columna', M.mercurio, 0.007, 0.075, tx - 0.06, ty - 0.03, tz + 0.009, 12); // 20°C ≈ mitad de la escala 0–40
-  for (let i = 0; i <= 4; i++) box(termo, `termometro_marca_${i}`, M.paper, 0.02, 0.003, 0.002, tx - 0.035, ty - 0.065 + i * 0.035, tz + 0.007);
-  // Pantalla digital "20°C" dibujada en canvas (solo visual; no viaja al OBJ)
-  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64; const c = cv.getContext('2d');
-  const pintarTemp = v => { c.fillStyle = '#1d2d3d'; c.fillRect(0, 0, 128, 64); c.fillStyle = '#b5d9fd'; c.font = '700 40px "Barlow Condensed", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(`${v}°C`, 64, 34); if (termo.userData.tex) termo.userData.tex.needsUpdate = true; };
-  pintarTemp(20); termo.userData.pintarTemp = pintarTemp;
-  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; termo.userData.tex = tex;
-  M.display = Object.assign(new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.9, roughness: 0.4 }), { name: 'display' });
-  box(termo, 'termometro_display', M.display, 0.11, 0.055, 0.004, tx + 0.035, ty + 0.03, tz + 0.007);
-  termo.userData.foco = new THREE.Vector3(tx, ty, tz);
-}
-
-// ===== Microprocesador en un blade (Jerarquía) =====
-const bladeRef = ROOT.getObjectByName('rack_2_6_servidor_3'), rackRef = ROOT.getObjectByName('rack_2_6');
-M.chip = mat('chip', 0x2b2b2d, 0.4, 0.3);
-M.pines = mat('pines', 0x94bce3, 0.4, 0.4);
-{ const p = bladeRef.getWorldPosition(new THREE.Vector3());
-  const cx = p.x + 0.08, cy = p.y, cz = p.z + 0.012;
-  box(rackRef, 'rack_2_6_servidor_3_chip_base', M.pines, 0.09, 0.09, 0.006, cx, cy, cz);
-  box(rackRef, 'rack_2_6_servidor_3_chip', M.chip, 0.06, 0.06, 0.008, cx, cy, cz + 0.006);
-  for (let i = 0; i < 5; i++) { box(rackRef, `rack_2_6_servidor_3_chip_aleta_${i + 1}`, M.grey, 0.05, 0.004, 0.012, cx, cy - 0.024 + i * 0.012, cz + 0.016); }
-}
-const chipRef = ROOT.getObjectByName('rack_2_6_servidor_3_chip');
-
-ROOT.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 M.heat.side = THREE.DoubleSide; M.humo.side = THREE.DoubleSide;
 
 // ===== ANIMACIÓN: rayo → apagón → planta eléctrica =====
@@ -383,9 +61,10 @@ const energia = { linea: E.getObjectByName('linea_at'), acom: [I.getObjectByName
 M.lineaOn = mat('linea_activa', 0x1d1f20, 0.6, 0.1, { emissive: 0x5980a6, emissiveIntensity: 0.8 });
 M.lineaOff = mat('linea_caida', 0x98989b, 0.9, 0);
 const ledBase = { color: M.led.color.clone(), em: M.led.emissive.clone(), ei: M.led.emissiveIntensity };
+const ledGreenBase = { ei: M.ledGreen.emissiveIntensity };
 let anim = null;
 const estado = document.getElementById('estado');
-const setLeds = (on, k = 1) => { M.led.emissiveIntensity = on ? ledBase.ei * k : 0; M.led.color.copy(ledBase.color).multiplyScalar(on ? 1 : 0.35); M.lampara.emissiveIntensity = on ? 1.8 * k : 0; lamparas.forEach(l => l.intensity = on ? lampBase * k : 0); luzSala.intensity = on ? salaBase * k : 0; };
+const setLeds = (on, k = 1) => { M.led.emissiveIntensity = on ? ledBase.ei * k : 0; M.led.color.copy(ledBase.color).multiplyScalar(on ? 1 : 0.35); M.ledGreen.emissiveIntensity = on ? ledGreenBase.ei * k : 0; M.lampara.emissiveIntensity = on ? 1.8 * k : 0; lamparas.forEach(l => l.intensity = on ? lampBase * k : 0); luzSala.intensity = on ? salaBase * k : 0; };
 let calleOn = true;
 const setCalle = on => { calleOn = on; M.farol.emissiveIntensity = on ? 1.6 : 0; faroles.forEach(l => l.intensity = on ? farolBase : 0); if (!on) M.ventana.emissiveIntensity = 0; };
 const reset = () => { setLeds(true); setCalle(true); rayo.visible = false; M.rayo.opacity = 0; energia.linea.material = M.ink; energia.acom.forEach(l => l.material = M.ink); energia.gen.forEach(l => l.material = M.ink); humo.visible = false; M.humo.opacity = 0; M.genLed.emissive.setHex(0); luzGen.intensity = 0; estado.textContent = ''; };
@@ -404,7 +83,7 @@ function simularRayo(modo = 'entorno') {
       const k = (t - 3.0) / 1.2; humo.visible = true; M.humo.opacity = 0.35 * k; M.genLed.emissive.setHex(0xb5d9fd).multiplyScalar(k); luzGen.intensity = 40 * k; setLeds(rnd() > 0.15, 0.8);
       if (k > 0.5) energia.gen.forEach(l => l.material = M.lineaOn); estado.textContent = 'Arranque del generador';
     } else if (t < (res ? 9.5 : 7.5)) { // operación en planta
-      setLeds(true); M.humo.opacity = 0.3 + Math.sin(t * 6) * 0.05; humo.position.y = y0 + 3.7 + Math.sin(t * 2) * 0.1; estado.textContent = res ? 'Resiliencia: el datacenter opera con su planta; la calle sigue a oscuras' : 'Operando con planta eléctrica interna';
+      setLeds(true); M.humo.opacity = 0.3 + Math.sin(t * 6) * 0.05; humo.position.y = y0 + 2.6 + Math.sin(t * 2) * 0.1; estado.textContent = res ? 'Resiliencia: el datacenter opera con su planta; la calle sigue a oscuras' : 'Operando con planta eléctrica interna';
     } else if (t < (res ? 10.5 : 8.5)) { // retorno de red
       energia.linea.material = M.ink; energia.acom.forEach(l => l.material = M.lineaOn); setCalle(true); estado.textContent = 'Retorno de la red · retransferencia';
     } else { reset(); anim = null; btnRayo.disabled = false; btnRes.disabled = false; return; }
@@ -412,26 +91,337 @@ function simularRayo(modo = 'entorno') {
   });
 }
 stage.setObject(ROOT);
+{ const cam = stage._camera, ctl = stage._controls;
+  cam.position.set(15, 12.5, 19); ctl.target.set(1.5, 0.9, 0);
+  cam.near = 0.4; cam.far = 220; cam.updateProjectionMatrix(); ctl.update(); }
 
-// ===== ANIMACIÓN: zoom al termómetro =====
-let zoomAnim = null;
-function zoomTermometro() {
-  if (zoomAnim) return;
+// ===== ANIMACIÓN: equifinalidad (A/B/C → mismo servicio disponible) =====
+let eqfAnim = null;
+const srvA = ROOT.getObjectByName('rack_2_4_servidor_3');
+const srvB = ROOT.getObjectByName('rack_2_4_servidor_4');
+const ledA = ROOT.getObjectByName('rack_2_4_servidor_3_led');
+const ledB = ROOT.getObjectByName('rack_2_4_servidor_4_led');
+const rackRepA = ROOT.getObjectByName('rack_2_4');
+const rackRepB = ROOT.getObjectByName('rack_2_6');
+const puertaEqf = ROOT.getObjectByName('deco_rack_2_4_puerta');
+const puertaEqfB = ROOT.getObjectByName('deco_rack_2_6_puerta');
+M.srvFail = mat('srv_fail', 0x3a3a3c, 0.8, 0.2, { emissive: 0xc0392b, emissiveIntensity: 0.35 });
+M.srvOk = mat('srv_ok', 0x1d2d3d, 0.4, 0.2, { emissive: 0xb5d9fd, emissiveIntensity: 1.4 });
+M.eqfPulso = mat('eqf_pulso', 0xeef6ff, 0.2, 0, { emissive: 0xb5d9fd, emissiveIntensity: 2.4 });
+const eqfFx = new THREE.Group(); eqfFx.name = 'equifinalidad_fx'; eqfFx.visible = false; ROOT.add(eqfFx);
+const eqfRotulo = (() => {
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 160; const c = cv.getContext('2d');
+  const pintar = (titulo, sub) => {
+    c.clearRect(0, 0, 512, 160);
+    c.fillStyle = 'rgba(13, 18, 24, 0.92)'; c.fillRect(0, 0, 512, 160);
+    c.strokeStyle = '#94bce3'; c.lineWidth = 6; c.strokeRect(4, 4, 504, 152);
+    c.fillStyle = '#b5d9fd'; c.font = '700 44px "Barlow Condensed", sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(titulo, 256, sub ? 58 : 80);
+    if (sub) { c.fillStyle = '#f2f2f3'; c.font = '600 28px "Barlow Condensed", sans-serif'; c.fillText(sub, 256, 112); }
+    tex.needsUpdate = true;
+  };
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 1.5), m);
+  mesh.name = 'eqf_servicio_disponible'; mesh.renderOrder = 20; mesh.visible = false; eqfFx.add(mesh);
+  mesh.userData.pintar = pintar; pintar('SERVICIO', 'DISPONIBLE');
+  return mesh;
+})();
+const eqfPulsos = new THREE.Group(); eqfPulsos.name = 'eqf_pulsos'; eqfFx.add(eqfPulsos);
+function setEqfBtns(on) {
+  [btnEqfA, btnEqfB, btnEqfC].forEach(b => { if (b) b.disabled = !on; });
+}
+function animarEquifinalidad(ruta) {
+  if (eqfAnim || jerAnim || cpxAnim2) return;
   const cam = stage._camera, ctl = stage._controls;
-  const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
-  const foco = termo.userData.foco, p1 = foco.clone().add(new THREE.Vector3(0.04, 0.05, 0.42));
-  const near0 = cam.near; cam.near = 0.02; cam.updateProjectionMatrix();
-  ctl.autoRotate = false; ctl.enabled = false; btnZoom.disabled = true;
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-  const start = performance.now(), IN = 2.2, HOLD = 2.5, OUT = 2.0;
-  zoomAnim = requestAnimationFrame(function step(now) {
-    const t = (now - start) / 1000; let u;
-    if (t < IN) { u = ease(t / IN); estado.textContent = 'Acercando al servidor'; }
-    else if (t < IN + HOLD) { u = 1; estado.textContent = 'Chip a 20 °C · bajo el umbral térmico'; }
-    else if (t < IN + HOLD + OUT) { u = 1 - ease((t - IN - HOLD) / OUT); estado.textContent = 'Regresando'; }
-    else { cam.position.copy(p0); ctl.target.copy(t0); ctl.update(); cam.near = near0; cam.updateProjectionMatrix(); ctl.enabled = true; ctl.autoRotate = wasAuto; estado.textContent = ''; btnZoom.disabled = false; zoomAnim = null; return; }
-    cam.position.lerpVectors(p0, p1, u); ctl.target.lerpVectors(t0, foco, u); ctl.update();
-    zoomAnim = requestAnimationFrame(step);
+  const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
+  const wasDamp = lockScriptedCam(ctl);
+  cam.near = 0.08; cam.updateProjectionMatrix();
+  setEqfBtns(false);
+  ROOT.updateMatrixWorld(true);
+  const puertaVisA = puertaEqf ? puertaEqf.visible : null;
+  const puertaVisB = puertaEqfB ? puertaEqfB.visible : null;
+  if (puertaEqf) puertaEqf.visible = false;
+  if (puertaEqfB) puertaEqfB.visible = false;
+  const matCache = new Map();
+  const saveMat = o => { if (o && o.isMesh && !matCache.has(o)) matCache.set(o, o.material); };
+  [srvA, srvB, ledA, ledB].forEach(saveMat);
+  const gabA = rackRepA?.getObjectByName('rack_2_4_gabinete');
+  const gabB = rackRepB?.getObjectByName('rack_2_6_gabinete');
+  [gabA, gabB].forEach(saveMat);
+  sitioDr.traverse(o => { if (o.isMesh) saveMat(o); });
+  const winBase = M.ventana.emissiveIntensity;
+  const fSrv = srvB.getWorldPosition(new THREE.Vector3());
+  const fRackA = gabA.getWorldPosition(new THREE.Vector3());
+  const fRackB = gabB.getWorldPosition(new THREE.Vector3());
+  const fDr = sitioDr.userData.foco.clone();
+  const fSala = new THREE.Vector3(HX, y0 + 1.6, HZ);
+  const fCiudad = new THREE.Vector3(-24, 3, -12);
+  const ease = easeInOutCubic;
+  const V = (a, b) => a.clone().add(b);
+  const metas = {
+    A: {
+      titulo: 'Opción A · Redundancia de servidores',
+      camIn: V(fSrv, new THREE.Vector3(0.55, 0.35, 1.8)),
+      focoIn: fSrv.clone(),
+    },
+    B: {
+      titulo: 'Opción B · Replicación',
+      camIn: V(fRackA.clone().lerp(fRackB, 0.5), new THREE.Vector3(2.8, 2.2, 6.5)),
+      focoIn: fRackA.clone().lerp(fRackB, 0.5),
+    },
+    C: {
+      titulo: 'Opción C · Disaster Recovery',
+      camIn: new THREE.Vector3(HX + 11, y0 + 8, HZ + 15),
+      focoIn: new THREE.Vector3(HX, y0 + 1.4, HZ),
+    },
+  };
+  const m = metas[ruta];
+
+  // ——— Opción C: secuencia por etapas (principal → falla → DR → servicio) ———
+  if (ruta === 'C') {
+    SUB.resiliencia.visible = true;
+    const cbRes = layers.querySelector('input[data-k="resiliencia"]');
+    if (cbRes) cbRes.checked = true;
+    sitioDr.visible = true;
+    M.drLed.emissiveIntensity = 0;
+    if (M.drBeacon) M.drBeacon.emissiveIntensity = 0;
+    eqfFx.visible = true; eqfRotulo.visible = false; eqfPulsos.clear();
+
+    const camMain = new THREE.Vector3(HX + 11, y0 + 8, HZ + 15);
+    const focoMain = new THREE.Vector3(HX, y0 + 1.4, HZ);
+    const camDr = fDr.clone().add(new THREE.Vector3(8.5, 5.5, 11));
+    const focoDr = fDr.clone().add(new THREE.Vector3(0, 0.6, 0));
+    const camOkC = fDr.clone().add(new THREE.Vector3(7, 5, 10));
+    const focoOkC = fDr.clone().add(new THREE.Vector3(0, 1.2, 0));
+
+    const rutaDr = new THREE.CatmullRomCurve3([
+      fDr.clone().add(new THREE.Vector3(0, 2.2, 0)),
+      new THREE.Vector3((fDr.x + fCiudad.x) / 2, 7, (fDr.z + fCiudad.z) / 2),
+      fCiudad.clone().add(new THREE.Vector3(0, 2, 0)),
+    ], false, 'catmullrom', 0.15);
+    const bolas = [];
+    for (let i = 0; i < 5; i++) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 10), M.eqfPulso);
+      b.name = `eqf_pulso_${i}`; b.userData.off = i / 5; b.visible = false; eqfPulsos.add(b); bolas.push(b);
+    }
+
+    const MOVE = 2.2, HOLD = 2.2, ease = easeInOutCubic;
+    // 0 → principal, 1 → falla (mismo plano), 2 → pan al DR, 3 → activa, 4 → servicio, 5 → salida
+    const etapas = [
+      { cam: camMain, foco: focoMain, txt: 'Opción C · sitio principal del Data Center' },
+      { cam: camMain, foco: focoMain, hold: true, fail: true, instant: true, txt: 'Falla el sitio principal · aquí se apaga el servicio' },
+      { cam: camDr, foco: focoDr, txt: 'Disaster Recovery · la cámara va al sitio secundario' },
+      { cam: camDr, foco: focoDr, hold: true, act: true, instant: true, txt: 'Sitio DR activo · asume la carga del servicio' },
+      { cam: camOkC, foco: focoOkC, hold: true, ok: true, instant: true, txt: 'Equifinalidad · distinto camino → servicio disponible' },
+      { cam: p0, foco: t0, out: true, txt: 'Equifinalidad · diferentes caminos, mismo resultado' },
+    ];
+    let etapa = 0, tEtapa = performance.now(), fase = 'move';
+    let pFrom = p0.clone(), tFrom = t0.clone();
+    const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+
+    const finishC = () => {
+      matCache.forEach((mat0, o) => { o.material = mat0; });
+      matCache.clear();
+      eqfFx.visible = false; eqfRotulo.visible = false; eqfPulsos.clear();
+      sitioDr.visible = false; M.drLed.emissiveIntensity = 0;
+      if (M.drBeacon) M.drBeacon.emissiveIntensity = 0;
+      M.ventana.emissiveIntensity = winBase;
+      if (puertaEqf) puertaEqf.visible = puertaVisA;
+      if (puertaEqfB) puertaEqfB.visible = puertaVisB;
+      setLeds(true);
+      unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
+      estado.textContent = '';
+      setEqfBtns(true);
+      eqfAnim = null;
+    };
+
+    const applyHoldFx = (e) => {
+      if (e.fail) setLeds(false);
+      if (e.act) {
+        M.drLed.emissiveIntensity = 2.2;
+        if (M.drBeacon) M.drBeacon.emissiveIntensity = 2.5;
+        bolas.forEach(b => { b.visible = true; });
+      }
+      if (e.ok) {
+        eqfRotulo.visible = true;
+        eqfRotulo.userData.pintar('SERVICIO', 'DISPONIBLE');
+        M.ventana.emissiveIntensity = 2.0;
+      }
+    };
+
+    eqfAnim = requestAnimationFrame(function step(now) {
+      const e = etapas[etapa], t = (now - tEtapa) / 1000;
+      const moveDur = e.instant ? 0.05 : MOVE;
+      if (fase === 'move') {
+        const u = ease(Math.min(t / moveDur, 1));
+        aimScriptedCam(cam, ctl, tmpP.lerpVectors(pFrom, e.cam, u), tmpT.lerpVectors(tFrom, e.foco, u));
+        estado.textContent = e.txt;
+        if (t >= moveDur) {
+          if (e.out) { finishC(); return; }
+          applyHoldFx(e);
+          fase = 'hold'; tEtapa = now;
+        }
+      } else {
+        aimScriptedCam(cam, ctl, e.cam, e.foco);
+        if (e.fail) {
+          setLeds(false);
+          estado.textContent = e.txt;
+        } else if (e.act) {
+          M.drLed.emissiveIntensity = 1.4 + 0.9 * (0.5 + 0.5 * Math.sin(t * 7));
+          if (M.drBeacon) M.drBeacon.emissiveIntensity = 1.6 + 1.2 * (0.5 + 0.5 * Math.sin(t * 5));
+          bolas.forEach(b => {
+            let uB = (b.userData.off + t * 0.35) % 1;
+            b.position.copy(rutaDr.getPointAt(Math.min(Math.max(uB, 0.001), 0.999)));
+            b.scale.setScalar(0.8 + 0.35 * Math.sin(uB * Math.PI));
+          });
+          estado.textContent = e.txt;
+        } else if (e.ok) {
+          eqfRotulo.visible = true;
+          eqfRotulo.position.copy(fDr.clone().add(new THREE.Vector3(0, 4.2, 0)));
+          eqfRotulo.quaternion.copy(cam.quaternion);
+          eqfRotulo.scale.setScalar(0.85 + 0.15 * Math.min(t * 2, 1));
+          M.drLed.emissiveIntensity = 2.2;
+          if (M.drBeacon) M.drBeacon.emissiveIntensity = 2.4;
+          bolas.forEach(b => {
+            let uB = (b.userData.off + t * 0.3) % 1;
+            b.position.copy(rutaDr.getPointAt(Math.min(Math.max(uB, 0.001), 0.999)));
+          });
+          M.ventana.emissiveIntensity = 1.6 + 0.6 * Math.sin(t * 4);
+          estado.textContent = e.txt;
+        } else {
+          estado.textContent = e.txt;
+        }
+        if (t >= HOLD) {
+          etapa++;
+          if (etapa >= etapas.length) { finishC(); return; }
+          fase = 'move'; tEtapa = now;
+          pFrom = cam.position.clone(); tFrom = ctl.target.clone();
+          if (etapas[etapa].out) eqfRotulo.visible = false;
+        }
+      }
+      eqfAnim = requestAnimationFrame(step);
+    });
+    return;
+  }
+
+  // En A el zoom es muy cercano: al mostrar el letrero abrimos un poco el plano
+  const camOk = ruta === 'A' ? V(fSrv, new THREE.Vector3(1.05, 0.7, 3.2)) : m.camIn.clone();
+  const focoOk = ruta === 'A' ? fSrv.clone().add(new THREE.Vector3(0, 0.2, 0)) : m.focoIn.clone();
+  const IN = 1.8, SHOW = 2.2, PROC = 1.6, OK = 2.8, OUT = 1.8;
+  const T1 = IN, T2 = T1 + SHOW, T3 = T2 + PROC, T4 = T3 + OK, T5 = T4 + OUT;
+  const start = performance.now();
+  const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+  eqfFx.visible = true; eqfRotulo.visible = false; eqfPulsos.clear();
+  sitioDr.visible = false;
+  M.drLed.emissiveIntensity = 0;
+  const rutaSync = new THREE.CatmullRomCurve3([
+    fRackA.clone().add(new THREE.Vector3(0, 0.4, 0.5)),
+    fRackA.clone().lerp(fRackB, 0.5).add(new THREE.Vector3(0, 1.2, 1.2)),
+    fRackB.clone().add(new THREE.Vector3(0, 0.4, 0.5)),
+  ], false, 'catmullrom', 0.2);
+  const bolas = [];
+  if (ruta === 'B') {
+    for (let i = 0; i < 4; i++) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), M.eqfPulso);
+      b.name = `eqf_pulso_${i}`; b.userData.off = i / 4; eqfPulsos.add(b); bolas.push(b);
+    }
+  }
+  const finish = () => {
+    matCache.forEach((mat0, o) => { o.material = mat0; });
+    matCache.clear();
+    eqfFx.visible = false; eqfRotulo.visible = false; eqfPulsos.clear();
+    sitioDr.visible = false; M.drLed.emissiveIntensity = 0;
+    M.ventana.emissiveIntensity = winBase;
+    if (puertaEqf) puertaEqf.visible = puertaVisA;
+    if (puertaEqfB) puertaEqfB.visible = puertaVisB;
+    setLeds(true);
+    unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
+    estado.textContent = '';
+    setEqfBtns(true);
+    eqfAnim = null;
+  };
+  eqfAnim = requestAnimationFrame(function step(now) {
+    const t = (now - start) / 1000;
+    if (t < T1) {
+      const u = ease(t / IN);
+      aimScriptedCam(cam, ctl, tmpP.lerpVectors(p0, m.camIn, u), tmpT.lerpVectors(t0, m.focoIn, u));
+      estado.textContent = 'Equifinalidad · el Data Center necesita mantener un servicio disponible';
+    } else if (t < T2) {
+      const u = (t - T1) / SHOW;
+      aimScriptedCam(cam, ctl, m.camIn, m.focoIn);
+      if (ruta === 'A') {
+        const on = Math.floor(t * 5) % 2 === 0;
+        if (srvA) srvA.material = on ? M.srvOk : matCache.get(srvA);
+        if (srvB) srvB.material = on ? M.srvOk : matCache.get(srvB);
+        if (ledA) ledA.material = M.srvOk;
+        if (ledB) ledB.material = M.srvOk;
+        estado.textContent = `${m.titulo} · dos servidores activos`;
+      } else {
+        if (gabA) gabA.material = M.srvOk;
+        if (gabB) gabB.material = M.srvOk;
+        bolas.forEach(b => {
+          let uB = (b.userData.off + u * 1.4) % 1;
+          b.position.copy(rutaSync.getPointAt(Math.min(Math.max(uB, 0.001), 0.999)));
+        });
+        estado.textContent = `${m.titulo} · datos sincronizados entre sistemas`;
+      }
+    } else if (t < T3) {
+      if (ruta === 'A') {
+        if (srvA) srvA.material = M.srvFail;
+        if (ledA) ledA.material = M.srvFail;
+        if (srvB) srvB.material = M.srvOk;
+        if (ledB) ledB.material = M.srvOk;
+        M.srvOk.emissiveIntensity = 0.6 + 1.2 * (0.5 + 0.5 * Math.sin(t * 10));
+        estado.textContent = 'Estrategia elegida · un servidor falla · el otro continúa · procesamiento';
+      } else {
+        bolas.forEach(b => {
+          let uB = (b.userData.off + t * 0.55) % 1;
+          b.position.copy(rutaSync.getPointAt(Math.min(Math.max(uB, 0.001), 0.999)));
+          b.scale.setScalar(0.7 + 0.4 * Math.sin(uB * Math.PI));
+        });
+        estado.textContent = 'Estrategia elegida · réplica activa · procesamiento';
+      }
+    } else if (t < T4) {
+      const u = (t - T3) / OK;
+      if (ruta === 'A') {
+        const uCam = ease(Math.min(u * 1.4, 1));
+        aimScriptedCam(cam, ctl, tmpP.lerpVectors(m.camIn, camOk, uCam), tmpT.lerpVectors(m.focoIn, focoOk, uCam));
+      }
+      eqfRotulo.visible = true;
+      eqfRotulo.userData.pintar('SERVICIO', 'DISPONIBLE');
+      const posLabel = ruta === 'A'
+        ? fSrv.clone().add(new THREE.Vector3(0.25, 0.55, 0.85))
+        : m.focoIn.clone().add(new THREE.Vector3(0, 2.6, 0));
+      const labelScale = ruta === 'A'
+        ? 0.28 + 0.1 * ease(Math.min(u * 2, 1))
+        : 0.55 + 0.45 * ease(Math.min(u * 2, 1));
+      eqfRotulo.position.copy(posLabel);
+      eqfRotulo.quaternion.copy(cam.quaternion);
+      eqfRotulo.scale.setScalar(labelScale);
+      M.ventana.emissiveIntensity = 1.4 + 0.8 * Math.sin(t * 4);
+      if (ruta === 'A') {
+        if (srvA) srvA.material = M.srvFail;
+        if (ledA) ledA.material = M.srvFail;
+        if (srvB) srvB.material = M.srvOk;
+        if (ledB) ledB.material = M.srvOk;
+      } else {
+        bolas.forEach(b => {
+          let uB = (b.userData.off + t * 0.4) % 1;
+          b.position.copy(rutaSync.getPointAt(Math.min(Math.max(uB, 0.001), 0.999)));
+        });
+      }
+      estado.textContent = 'Equifinalidad · distintas estrategias → mismo estado final: servicio disponible';
+    } else if (t < T5) {
+      const u = ease((t - T4) / OUT);
+      eqfRotulo.visible = u < 0.55;
+      aimScriptedCam(cam, ctl, tmpP.lerpVectors(camOk, p0, u), tmpT.lerpVectors(focoOk, t0, u));
+      estado.textContent = 'Equifinalidad · diferentes caminos, mismo resultado';
+    } else {
+      finish();
+      return;
+    }
+    eqfAnim = requestAnimationFrame(step);
   });
 }
 
@@ -447,42 +437,69 @@ function parpadear(objs, on, fase) {
 }
 const meshesDe = g => { const a = []; g.traverse(o => { if (o.isMesh) a.push(o); }); return a; };
 function animarJerarquia() {
-  if (jerAnim || zoomAnim) return;
+  if (jerAnim || eqfAnim) return;
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
   const cbJer = layers.querySelector('input[data-k="jerarquia"]'), jerOn = !!(cbJer && cbJer.checked);
   if (jerOn) resaltar(CAPAS.jerarquia.resaltar, false);
-  cam.near = 0.02; cam.updateProjectionMatrix(); ctl.autoRotate = false; ctl.enabled = false; btnJer.disabled = true;
+  const wasDamp = lockScriptedCam(ctl);
+  cam.near = 0.05; cam.updateProjectionMatrix();
+  if (btnJer) btnJer.disabled = true;
   const V = (a, b) => new THREE.Vector3(a.x, a.y, a.z).add(b);
+  // Matrices al día: tras el montaje React / GLBs diferidos puede haber un frame stale.
+  ROOT.updateMatrixWorld(true);
   const fChip = chipRef.getWorldPosition(new THREE.Vector3());
   const fBlade = bladeRef.getWorldPosition(new THREE.Vector3());
-  const fRack = rackRef.getObjectByName('rack_2_6_gabinete').getWorldPosition(new THREE.Vector3());
+  const gabinete = rackRef.getObjectByName('rack_2_6_gabinete');
+  const fRack = gabinete.getWorldPosition(new THREE.Vector3());
+  // El rediseño bonito añadió una puerta frontal opaca con textura de leds
+  // (deco_rack_2_6_puerta) que tapa el blade y los servidores al parpadear.
+  // Se oculta durante la animación y se restaura al final; la etapa 3 además
+  // filtra los deco_* para parpadear el mismo conjunto que el modelo original.
+  const puertaRack6 = rackRef.getObjectByName('deco_rack_2_6_puerta');
+  const puertaVis0 = puertaRack6 ? puertaRack6.visible : null;
+  if (puertaRack6) puertaRack6.visible = false;
+  const meshesRack6 = meshesDe(rackRef).filter(o => !o.name.startsWith('deco_'));
+  // Etapa 4 (global): el pulso debe afectar solo a los grupos resaltados del
+  // sistema; antes recorría hlCache completo y hacía parpadear también los
+  // edificios y farolas del entorno (atenuados pero con material emisivo).
+  const mallasJer = [];
+  CAPAS.jerarquia.resaltar.forEach(n => { const g = SUB[n]; if (g) g.traverse(o => { if (o.isMesh) mallasJer.push(o); }); });
+  // Offsets un poco más abiertos: a 0.28 m los LEDs emisivos llenan el FOV y
+  // parecen “desenfoque”; el damping de Orbit peores el encuadre.
   const etapas = [
-    { foco: fChip, cam: V(fChip, new THREE.Vector3(0.03, 0.03, 0.28)), objs: [chipRef], txt: '1 · Microprocesador' },
-    { foco: fBlade, cam: V(fBlade, new THREE.Vector3(0.1, 0.12, 1.1)), objs: [bladeRef], txt: '2 · Blade (servidor)' },
-    { foco: fRack, cam: V(fRack, new THREE.Vector3(1.2, 0.9, 3.8)), objs: meshesDe(rackRef), txt: '3 · Rack completo' },
+    { foco: fChip, cam: V(fChip, new THREE.Vector3(0.12, 0.1, 0.55)), objs: [chipRef], txt: '1 · Microprocesador' },
+    { foco: fBlade, cam: V(fBlade, new THREE.Vector3(0.35, 0.25, 1.55)), objs: [bladeRef], txt: '2 · Blade (servidor)' },
+    { foco: fRack, cam: V(fRack, new THREE.Vector3(1.6, 1.1, 4.6)), objs: meshesRack6, txt: '3 · Rack completo' },
     { foco: t0, cam: p0, objs: [], global: true, txt: '4 · Datacenter como sistema' },
   ];
-  const MOVE = 1.8, HOLD = 2.4, ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const MOVE = 1.8, HOLD = 2.4, ease = easeInOutCubic;
   let pFrom = p0.clone(), tFrom = t0.clone(), etapa = 0, tEtapa = performance.now(), fase = 'move', globalOn = false;
+  const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+  const finishJer = () => {
+    if (globalOn) resaltar(CAPAS.jerarquia.resaltar, false);
+    if (jerOn) resaltar(CAPAS.jerarquia.resaltar, true);
+    if (puertaRack6) puertaRack6.visible = puertaVis0;
+    unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
+    estado.textContent = '';
+    if (btnJer) btnJer.disabled = false;
+    jerAnim = null;
+  };
   jerAnim = requestAnimationFrame(function step(now) {
     const e = etapas[etapa], t = (now - tEtapa) / 1000;
     if (fase === 'move') {
-      const u = ease(Math.min(t / MOVE, 1)); cam.position.lerpVectors(pFrom, e.cam, u); ctl.target.lerpVectors(tFrom, e.foco, u); ctl.update();
+      const u = ease(Math.min(t / MOVE, 1));
+      aimScriptedCam(cam, ctl, tmpP.lerpVectors(pFrom, e.cam, u), tmpT.lerpVectors(tFrom, e.foco, u));
       estado.textContent = 'Jerarquía · ' + e.txt;
       if (t >= MOVE) { fase = 'hold'; tEtapa = now; if (e.global) { resaltar(CAPAS.jerarquia.resaltar, true); globalOn = true; } }
     } else {
       const on = Math.floor(t * 4) % 2 === 0;
-      if (e.global) { hlCache.forEach((base, o) => { if (o.material !== base && o.material.emissive) o.material.emissiveIntensity = on ? 0.9 : 0.25; }); }
+      if (e.global) { mallasJer.forEach(o => { const base = hlCache.get(o); if (base && o.material !== base && o.material.emissive) o.material.emissiveIntensity = on ? 0.9 : 0.25; }); }
       else parpadear(e.objs, true, on);
       if (t >= HOLD) {
         parpadear(e.objs, false); etapa++; fase = 'move'; tEtapa = now; pFrom = cam.position.clone(); tFrom = ctl.target.clone();
-        if (etapa >= etapas.length) {
-          if (globalOn) resaltar(CAPAS.jerarquia.resaltar, false);
-          if (jerOn) resaltar(CAPAS.jerarquia.resaltar, true);
-          cam.position.copy(p0); ctl.target.copy(t0); ctl.update(); cam.near = near0; cam.updateProjectionMatrix();
-          ctl.enabled = true; ctl.autoRotate = wasAuto; estado.textContent = ''; btnJer.disabled = false; jerAnim = null; return;
-        }
+        if (etapa < etapas.length && etapas[etapa].global && puertaRack6) puertaRack6.visible = puertaVis0;
+        if (etapa >= etapas.length) { finishJer(); return; }
       }
     }
     jerAnim = requestAnimationFrame(step);
@@ -496,11 +513,11 @@ const pulsos = new THREE.Group(); pulsos.name = 'pulsos_energia'; pulsos.visible
 const V3 = a => a.map(p => new THREE.Vector3(...p));
 const curva = pts => new THREE.CatmullRomCurve3(V3(pts), false, 'catmullrom', 0.15);
 const rutas = [
-  { c: curva([[30, 8.6, -6], [TX + 3, y0 + 7, TZ - 4], [TX, y0 + 2.3, TZ], [TX - 0.9, y0 + 0.6, TZ], [UX + 2, y0 + 0.6, UZ], [UX, y0 + 3.4, UZ], [HX + HW / 2 + 0.3, fy + rackH + 0.6, HZ], [HX, fy + rackH + 0.6, HZ]]), n: 8, tipo: 'energia', cables: ['linea_at', 'acometida_electrica_1', 'acometida_electrica_2', 'alimentador_ups'] },
-  { c: curva([[30, 8.6, 1.5], [TX + 3, y0 + 7, TZ + 12], [TX, y0 + 2.3, TZ + 0.6], [TX - 0.9, y0 + 0.6, TZ], [UX + 2, y0 + 0.6, UZ]]), n: 4, tipo: 'energia', cables: ['acometida_electrica_redundante', 'acometida_electrica_redundante_2'] },
-  { c: curva([[-30, y0 + 6, 10], [MX, y0 + 2.7, MZ], [HX - HW / 2 + 0.3, fy + rackH + 0.6, MZ], [HX, fy + rackH + 0.6, HZ]]), n: 6, tipo: 'datos', cables: ['fibra_entrada'] },
-  { c: curva([[HX, fy + rackH + 0.6, HZ], [HX - HW / 2 + 0.3, fy + rackH + 0.6, MZ], [MX, y0 + 2.5, MZ + 0.4], [-26, 7, -16]]), n: 6, tipo: 'datos', cables: ['fibra_salida_datos'] },
-  ...[0, 1, 2, 3].map(i => ({ c: curva([[HX - 6 + i * 4, RY + 0.9, HZ - 2.5], [HX - 6 + i * 4, RY + 4.5, HZ - 2.5]]), n: 2, tipo: 'calor', cables: [] })),
+  { c: curva([[30, 8.6, -6], [TX + 2.6, y0 + 6.4, TZ - 3.6], [TX, y0 + 1.95, TZ], [TX - 0.85, y0 + 0.5, TZ], [UX + 2.4, y0 + 0.5, UZ], [UX, y0 + 1.6, UZ], [HX + HW / 2 + 0.3, fy + rackH + 0.45, HZ], [HX, fy + rackH + 0.45, HZ]]), n: 8, tipo: 'energia', cables: ['linea_at', 'acometida_electrica_1', 'acometida_electrica_2', 'alimentador_ups'] },
+  { c: curva([[30, 8.6, 1.5], [TX + 2.6, y0 + 6.4, TZ + 10.5], [TX, y0 + 1.95, TZ + 0.5], [TX - 0.85, y0 + 0.5, TZ], [UX + 2.4, y0 + 0.5, UZ]]), n: 4, tipo: 'energia', cables: ['acometida_electrica_redundante', 'acometida_electrica_redundante_2'] },
+  { c: curva([[-30, y0 + 5.6, 10], [MX, y0 + 1.8, MZ], [HX - HW / 2 + 0.3, fy + rackH + 0.45, MZ], [HX, fy + rackH + 0.45, HZ]]), n: 6, tipo: 'datos', cables: ['fibra_entrada'] },
+  { c: curva([[HX, fy + rackH + 0.45, HZ], [HX - HW / 2 + 0.3, fy + rackH + 0.45, MZ], [MX, y0 + 1.7, MZ + 0.35], [-26, 7, -16]]), n: 6, tipo: 'datos', cables: ['fibra_salida_datos'] },
+  ...chillerPos.map(([x, y, z]) => ({ c: curva([[x, y + 0.4, z], [x, y + 3.6, z]]), n: 2, tipo: 'calor', cables: [] })),
 ];
 M.pulsoEnergia = mat('pulso_energia', 0xeef6ff, 0.2, 0, { emissive: 0xb5d9fd, emissiveIntensity: 2.5 });
 M.pulsoDatos = mat('pulso_datos', 0x94bce3, 0.2, 0, { emissive: 0x5980a6, emissiveIntensity: 2.5 });
@@ -547,17 +564,21 @@ function animarFlujo(on) {
 let cpxAnim2 = null, filasVisibles = filasIniciales;
 function mostrarFilas(n) { filasVisibles = n; filas.forEach((f, i) => { f.visible = i < n; f.scale.set(1, 1, 1); if (f.userData.sensor) f.userData.sensor.visible = i < n; }); ciudadNueva.forEach(b => { b.visible = n > filasIniciales; b.scale.set(1, 1, 1); b.position.y = 0.2 + b.userData.h / 2; }); if (typeof sincronizarCiudad === 'function') sincronizarCiudad(); }
 function animarComplejidad() {
-  if (cpxAnim2 || jerAnim || zoomAnim) return;
+  if (cpxAnim2 || jerAnim || eqfAnim) return;
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
   ctl.autoRotate = false; ctl.enabled = false; btnCpx.disabled = true;
   mostrarFilas(filasIniciales);
-  const foco = new THREE.Vector3(HX, fy + 1.0, HZ - 1.0), pIn = new THREE.Vector3(HX + 3.5, y0 + 3.2, HZ + HD / 2 + 1.5);
+  const foco = new THREE.Vector3(HX - 0.5, fy + 0.9, HZ - 0.5), pIn = new THREE.Vector3(HX + 7.5, y0 + 2.9, HZ + HD / 2 + 6.0);
   const focoCiudad = new THREE.Vector3(-27, 4, -13), pCiudad = new THREE.Vector3(-8, 12, 14);
   ciudadNueva.forEach(b => { b.visible = false; b.scale.set(1, 1, 1); b.position.y = 0.2 + b.userData.h / 2; });
-  const techo = ['cubierta', 'uma_cubierta', 'chiller_1', 'chiller_2', 'chiller_3', 'chiller_4', 'chiller_1_ventilador', 'chiller_2_ventilador', 'chiller_3_ventilador', 'chiller_4_ventilador', 'calor_chiller_1', 'calor_chiller_2', 'calor_chiller_3', 'calor_chiller_4'].map(n => ROOT.getObjectByName(n)).filter(Boolean);
+  // Vista baja desde el sureste, por debajo de la cubierta: el techo nunca se interpone
+  // entre la cámara y los racks. Se oculta la cubierta + todo lo apoyado en ella
+  // (chillers, UMA, meteo y sus decos) para que no queden piezas flotando en cuadro.
+  const techo = [];
+  ROOT.traverse(o => { if (/^(cubierta|uma_cubierta|uma_ventilador|uma_rejilla|uma_aro|chiller_|calor_chiller_|estacion_meteo|meteo_panel|meteo_veleta|deco_(cubierta|uma_|chiller_|meteo_|anemo_))/.test(o.name)) techo.push(o); });
   const techoVis = techo.map(o => o.visible);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const IN = 2.0, PAUSA = 1.2, CREC = 0.9, OUT = 2.0;
   // Etapa 1: la ciudad crece (demanda)
   const C_IN = 2.0, C_EDIF = 0.7, C_PASO = 0.45, C_HOLD = 1.0;
@@ -646,10 +667,10 @@ const sitio = ['frontera', 'entradas', 'procesos', 'salidas', 'retroalimentacion
 // Líneas externas: un extremo en el entorno (fijo) y otro en el sitio (sube)
 const reaim = (m, A, B) => { const len = A.distanceTo(B); m.geometry.dispose(); m.geometry = new THREE.CylinderGeometry(m.userData.r, m.userData.r, len, 10); m.position.copy(A.clone().add(B).multiplyScalar(0.5)); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize()); };
 const externas = [
-  ['acometida_electrica_1', [30, 8.6, -6], [TX + 3, y0 + 7, TZ - 4]],
-  ['acometida_electrica_redundante', [30, 8.6, 1.5], [TX + 3, y0 + 7, TZ + 12]],
-  ['fibra_entrada', [-30, y0 + 6, 10], [MX, y0 + 2.7, MZ]],
-  ['fibra_salida_datos', [-26, 7, -16], [MX, y0 + 2.5, MZ + 0.4]],
+  ['acometida_electrica_1', [30, 8.6, -6], [TX + 2.6, y0 + 6.4, TZ - 3.6]],
+  ['acometida_electrica_redundante', [30, 8.6, 1.5], [TX + 2.6, y0 + 6.4, TZ + 10.5]],
+  ['fibra_entrada', [-30, y0 + 5.6, 10], [MX, y0 + 1.8, MZ]],
+  ['fibra_salida_datos', [-26, 7, -16], [MX, y0 + 1.7, MZ + 0.35]],
 ].map(([n, fijo, movil]) => { const m = ROOT.getObjectByName(n); m.userData.r = m.geometry.parameters.radiusTop; return { m, fijo: new THREE.Vector3(...fijo), movil: new THREE.Vector3(...movil) }; });
 function elevarSitio(h) { sitio.forEach(g => g.position.y = h); loma.visible = h > 0.01; loma.scale.y = Math.max(h / LOMA_H, 0.001); loma.position.y = 0.2 + h / 2; externas.forEach(e => reaim(e.m, e.fijo.clone().sub(new THREE.Vector3(0, h, 0)), e.movil)); const cb = layers.querySelector('input[data-k="adaptabilidad"]'); if (cb) cb.checked = h > LOMA_H / 2; }
 // Lluvia: partículas sobre todo el terreno
@@ -661,7 +682,7 @@ const lluvia = new THREE.Points(lluviaGeo, M.lluvia); lluvia.name = 'lluvia'; ll
 function caerLluvia(dt) { const a = lluviaGeo.attributes.position.array; for (let i = 0; i < N_LLUVIA; i++) { a[i * 3 + 1] -= 18 * dt; if (a[i * 3 + 1] < 0.2) a[i * 3 + 1] = 30; } lluviaGeo.attributes.position.needsUpdate = true; }
 function animarAdaptabilidad() {
   if (adAnim) return; btnAd.disabled = true; elevarSitio(0);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const LLUVIA = 3.0, SUBE = 2.5, PAUSA = 0.6, INUNDA = 3.0, HOLD = 2.5, BAJA = 2.5, AGUA_H = 2.2;
   const T1 = LLUVIA, T2 = T1 + SUBE, T3 = T2 + PAUSA, T4 = T3 + INUNDA, T5 = T4 + HOLD, T6 = T5 + BAJA;
   const start = performance.now(); let prev = start; agua.visible = true; lluvia.visible = true;
@@ -693,8 +714,8 @@ function posCielo(fase) { // fase 0..1: 0 = mediodía, 0.5 = medianoche
   const a = fase * Math.PI * 2; sol.position.set(Math.sin(a) * R_CIELO, Math.cos(a) * R_CIELO, -8); luna.position.set(-Math.sin(a) * R_CIELO, -Math.cos(a) * R_CIELO, -8);
 }
 // Objetos que se deterioran: mallas del sitio (salvo luces y animáticos)
-const deterioro = []; const noDet = /^(rayo|pulso|hilo|nube|ventana|termometro|generador_humo|calor_|loma|inundacion|lluvia|sensor_|luminaria_\d+_luz|luz_|placa_sitio|piso_tecnico|marca_|escombro)/;
-sitio.forEach(g => g.traverse(o => { if (o.isMesh && !noDet.test(o.name) && o.material !== M.led && o.material !== M.heat && o.material !== M.humo) deterioro.push(o); }));
+const deterioro = []; const noDet = /^(deco_|rayo|pulso|hilo|nube|ventana|termometro|generador_humo|calor_|loma|inundacion|lluvia|sensor_|luminaria_\d+_luz|luz_|placa_sitio|piso_tecnico|piso_baldosas|marca_|escombro|auto_|sitio_dr|eqf_|equifinalidad)/;
+sitio.forEach(g => g.traverse(o => { if (o.isMesh && !noDet.test(o.name) && o.material !== M.led && o.material !== M.ledGreen && o.material !== M.heat && o.material !== M.humo) deterioro.push(o); }));
 const detBase = new Map(); // o -> { mat, pos, rot, scale, seed }
 const escombros = new THREE.Group(); escombros.name = 'escombros'; escombros.visible = false; P.add(escombros);
 for (let i = 0; i < 60; i++) { const s = 0.3 + Math.random() * 0.9; const e = new THREE.Mesh(new THREE.BoxGeometry(s, s * 0.5, s * 0.7), M.escombro); e.name = `escombro_${i + 1}`; e.position.set(HX + (Math.random() - 0.5) * (HW + 4), y0 + s * 0.25, HZ + (Math.random() - 0.5) * (HD + 4)); e.rotation.y = Math.random() * Math.PI; escombros.add(e); }
@@ -712,17 +733,21 @@ function detObj(o, k, flash = 0) { // aplica deterioro k (0..1) a un objeto; fla
 }
 function aplicarDeterioro(k) {
   entropiaK = k;
-  if (k <= 0) { detBase.forEach((b, o) => { o.material = b.mat; o.position.copy(b.pos); o.rotation.copy(b.rot); o.scale.copy(b.scale); }); detBase.clear(); escombros.visible = false; if (!anim) setLeds(true); M.led.emissiveIntensity = ledBase.ei; return; }
+  if (k <= 0) { detBase.forEach((b, o) => { o.material = b.mat; o.position.copy(b.pos); o.rotation.copy(b.rot); o.scale.copy(b.scale); }); detBase.clear(); escombros.visible = false; if (!anim) setLeds(true); M.led.emissiveIntensity = ledBase.ei; M.ledGreen.emissiveIntensity = ledGreenBase.ei; return; }
   deterioro.forEach(o => detObj(o, k));
-  M.led.emissiveIntensity = ledBase.ei * Math.max(0, 1 - k * 1.6); M.lampara.emissiveIntensity = 1.8 * Math.max(0, 1 - k * 1.4); lamparas.forEach(l => l.intensity = lampBase * Math.max(0, 1 - k * 1.4)); luzSala.intensity = salaBase * Math.max(0, 1 - k * 1.6);
+  M.led.emissiveIntensity = ledBase.ei * Math.max(0, 1 - k * 1.6); M.ledGreen.emissiveIntensity = ledGreenBase.ei * Math.max(0, 1 - k * 1.6); M.lampara.emissiveIntensity = 1.8 * Math.max(0, 1 - k * 1.4); lamparas.forEach(l => l.intensity = lampBase * Math.max(0, 1 - k * 1.4)); luzSala.intensity = salaBase * Math.max(0, 1 - k * 1.6);
   escombros.visible = k > 0.55; escombros.children.forEach((e, i) => { const u = Math.min(Math.max((k - 0.55 - (i / 60) * 0.4) / 0.08, 0), 1); e.scale.setScalar(Math.max(u, 0.001)); });
 }
 function mezclaLuz(noche) { // 0 = día, 1 = noche (continuo)
   const d = 1 - noche;
-  stage._hemi.intensity = 0.12 + 0.88 * d; stage._hemi.color.setHex(0xffffff).lerp(new THREE.Color(0x94bce3), noche); stage._hemi.groundColor.setHex(0xd8d2c4).lerp(new THREE.Color(0x1d2d3d), noche);
-  stage._key.intensity = 0.25 + 1.95 * d; stage._key.color.setHex(0xffffff).lerp(new THREE.Color(0xb5d9fd), noche); stage._fill.intensity = 0.05 + 0.45 * d;
-  const bg = new THREE.Color(0xf2f2f3).lerp(new THREE.Color(0x1d2d3d), noche); stage.style.setProperty('--stage-bg', '#' + bg.getHexString());
-  document.body.classList.toggle('noche', noche > 0.5); stage.style.setProperty('--stage-note', noche > 0.5 ? '#b5d9fd' : 'rgba(26, 25, 21, 0.55)');
+  stage._hemi.intensity = 0.38 + 0.57 * d; stage._hemi.color.setHex(0xe8f0f8).lerp(new THREE.Color(0xb497cf), noche); stage._hemi.groundColor.setHex(0xc0ccd8).lerp(new THREE.Color(0x0a0a0a), noche);
+  stage._key.intensity = 0.68 + 1.17 * d; stage._key.color.setHex(0xfff4ea).lerp(new THREE.Color(0xd7c6ea), noche); stage._fill.intensity = 0.2 + 0.32 * d;
+  if (stage._rim) { stage._rim.intensity = 0.18 + 0.14 * d; stage._rim.color.setHex(0xd7c6ea); }
+  const bg = new THREE.Color(0xd8e6f2).lerp(new THREE.Color(0x0a0a0a), noche); stage.style.setProperty('--stage-bg', '#' + bg.getHexString());
+  (stage.closest('.dc-page') || document.body).classList.toggle('noche', noche > 0.5); stage.style.setProperty('--stage-note', noche > 0.5 ? '#c9b6df' : 'rgba(26, 25, 21, 0.5)');
+  stage.style.setProperty('--stage-toolbar-bg', noche > 0.5 ? 'rgba(10, 10, 10, 0.78)' : 'rgba(255, 255, 255, 0.92)');
+  stage.style.setProperty('--stage-toolbar-ink', noche > 0.5 ? '#f4f7ff' : '#2c4a64');
+  stage.style.setProperty('--stage-toolbar-border', noche > 0.5 ? 'rgba(244, 247, 255, 0.14)' : 'rgba(29, 45, 61, 0.14)');
 }
 function animarEntropia() {
   if (enAnim) return; btnEn.disabled = true; aplicarDeterioro(0);
@@ -771,7 +796,7 @@ const ventiladores = [1, 2, 3, 4].map(i => ROOT.getObjectByName(`chiller_${i}_ve
 const rejillas = [1, 2, 3].map(i => ROOT.getObjectByName(`crac_${i}_rejilla`)).filter(Boolean);
 M.rejillaCarga = mat('rejilla_carga', 0xd4d4d7, 0.6, 0, { emissive: 0xb5d9fd, emissiveIntensity: 0 });
 function cargaRefrigeracion(c) { // c 0..1
-  plumas.forEach(p => { p.scale.set(0.6 + 0.6 * c, 0.35 + 1.4 * c, 0.6 + 0.6 * c); p.position.y = RY + 0.9 + 1.2 * p.scale.y; });
+  plumas.forEach(p => { p.scale.set(0.6 + 0.6 * c, 0.35 + 1.4 * c, 0.6 + 0.6 * c); p.position.y = (p.userData.baseY || RY + 1.8) + 1.15 * (p.scale.y - 1); });
   M.heat.opacity = 0.08 + 0.42 * c;
   rejillas.forEach(r => { r.material = M.rejillaCarga; }); M.rejillaCarga.emissiveIntensity = 1.4 * c;
 }
@@ -785,7 +810,7 @@ function animarHomeostasis() {
     const carga = 0.15 + 0.85 * (1 - nocheCont); cargaRefrigeracion(carga);
     ventiladores.forEach(v => v.rotation.y += 0.04 + 0.5 * carga);
     estado.textContent = `Homeóstasis · ${nocheCont < 0.5 ? 'día' : 'noche'} · refrigeración ${Math.round(carga * 100)} % · chips 20 °C`;
-    if (t >= DUR + 1.5) { cielo.visible = false; setModo(modoNoche); plumas.forEach(p => { p.scale.set(1, 1, 1); p.position.y = RY + 2.2; }); M.heat.opacity = 0.35; rejillas.forEach(r => r.material = M.concrete); estado.textContent = ''; btnHo.disabled = false; hoAnim = null; return; }
+    if (t >= DUR + 1.5) { cielo.visible = false; setModo(modoNoche); plumas.forEach(p => { p.scale.set(1, 1, 1); p.position.y = p.userData.baseY || RY + 1.8; }); M.heat.opacity = 0.35; rejillas.forEach(r => r.material = M.grille); estado.textContent = ''; btnHo.disabled = false; hoAnim = null; return; }
     hoAnim = requestAnimationFrame(step);
   });
 }
@@ -810,7 +835,7 @@ function animarEquilibrio() {
   const cam = stage._camera, ctl = stage._controls; const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
   ctl.autoRotate = false; ctl.enabled = false;
   const foco = new THREE.Vector3(HX, RY + 3.5, HZ), pIn = new THREE.Vector3(HX + 14, RY + 10, HZ + 26);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const IN = 2.0, ESTABLE = 2.5, PERT = 2.0, COMP = 6.0, CIERRE = 1.5, OUT = 2.0;
   const T1 = IN, T2 = T1 + ESTABLE, T3 = T2 + PERT, T4 = T3 + COMP, T5 = T4 + CIERRE, T6 = T5 + OUT;
   const start = performance.now(); const flujoPropio = !cpxAnim; if (flujoPropio) animarFlujo(true);
@@ -823,7 +848,7 @@ function animarEquilibrio() {
     else if (t < T4) { const u = (t - T3) / COMP; const amort = Math.exp(-3 * u) * Math.cos(u * Math.PI * 4); entra = 1.6 - 0.6 * Math.min(u * 1.5, 1); sale = 1 + 0.6 * Math.min(u * 2, 1) * (1 - Math.min(u * 1.5, 1)) + (1.6 - entra) * 0.5; temp = 20 + 4 * Math.max(amort, 0) * (1 - u); ang = -0.28 * amort; M.ventana.emissiveIntensity = 1.6 + 1.2 * (1 - Math.min(u * 1.5, 1)); }
     else if (t < T5) { ang = 0; M.ventana.emissiveIntensity = 1.6; }
     else if (t < T6) { const u = ease((t - T5) / OUT); cam.position.lerpVectors(pIn, p0, u); ctl.target.lerpVectors(foco, t0, u); }
-    else { balanza.visible = false; if (flujoPropio) animarFlujo(false); cargaRefrigeracion(0.5); plumas.forEach(p => { p.scale.set(1, 1, 1); p.position.y = RY + 2.2; }); M.heat.opacity = 0.35; rejillas.forEach(r => r.material = M.concrete); termo.userData.pintarTemp(20); M.ventana.emissiveIntensity = winBase; cam.position.copy(p0); ctl.target.copy(t0); ctl.update(); ctl.enabled = true; ctl.autoRotate = wasAuto; estado.textContent = ''; btnEq.disabled = false; eqAnim = null; return; }
+    else { balanza.visible = false; if (flujoPropio) animarFlujo(false); cargaRefrigeracion(0.5); plumas.forEach(p => { p.scale.set(1, 1, 1); p.position.y = p.userData.baseY || RY + 1.8; }); M.heat.opacity = 0.35; rejillas.forEach(r => r.material = M.grille); termo.userData.pintarTemp(20); M.ventana.emissiveIntensity = winBase; cam.position.copy(p0); ctl.target.copy(t0); ctl.update(); ctl.enabled = true; ctl.autoRotate = wasAuto; estado.textContent = ''; btnEq.disabled = false; eqAnim = null; return; }
     fiel.rotation.z = ang; platoIn.scale.setScalar(0.7 + 0.3 * entra); platoOut.scale.setScalar(0.7 + 0.3 * sale);
     cargaRefrigeracion(Math.min(Math.max((sale - 0.6) / 1.0, 0), 1)); ventiladores.forEach(v => v.rotation.y += 0.05 + 0.4 * sale);
     const tInt = Math.round(temp); if (termo.userData.ultimo !== tInt) { termo.userData.ultimo = tInt; termo.userData.pintarTemp(tInt); }
@@ -841,7 +866,7 @@ const COLOR_FRIO = new THREE.Color(0x5980a6), COLOR_CALOR = new THREE.Color(0xc0
 const pintarCalor = u => { M.caliente.color.copy(COLOR_FRIO).lerp(COLOR_CALOR, u); M.caliente.emissiveIntensity = 0.9 * u; };
 M.pantallaAlerta = mat('pantalla_alerta', 0xb5d9fd, 0.4, 0, { emissive: 0xb5d9fd, emissiveIntensity: 0.6 });
 const rackRf = ROOT.getObjectByName('rack_2_3'), gabRf = rackRf.getObjectByName('rack_2_3_gabinete'), sensorRf = filas[1].userData.sensor, pantallaRf = ROOT.getObjectByName('noc_pantalla_imagen'), cracRf = ROOT.getObjectByName('crac_1'), rejillaRf = ROOT.getObjectByName('crac_1_rejilla');
-const pSensor = sensorRf.position.clone(), pNoc = new THREE.Vector3(NX, y0 + 3.2, NZ), pCrac = cracRf.position.clone().add(new THREE.Vector3(0, 1.3, 0.5));
+const pSensor = sensorRf.position.clone(), pNoc = new THREE.Vector3(NX, y0 + 1.55, NZ), pCrac = cracRf.position.clone().add(new THREE.Vector3(0, 1.1, 0.4));
 const rutaMed = new THREE.CatmullRomCurve3([pSensor, new THREE.Vector3(pSensor.x, pSensor.y, HZ + HD / 2 - 0.3), pNoc], false, 'catmullrom', 0.1);
 const rutaAct = new THREE.CatmullRomCurve3([pNoc, new THREE.Vector3(HX - HW / 2 + 0.6, fy + rackH + 0.9, HZ + HD / 2 - 0.3), new THREE.Vector3(HX - HW / 2 + 0.6, fy + rackH + 0.9, pCrac.z), pCrac], false, 'catmullrom', 0.1);
 const senal = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 12), M.senal); senal.name = 'senal_retroalimentacion'; senal.visible = false; R.add(senal);
@@ -855,8 +880,8 @@ function animarRetroalimentacion() {
   const cam = stage._camera, ctl = stage._controls; const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
   ctl.autoRotate = false; ctl.enabled = false;
   const foco = new THREE.Vector3(HX + 2, y0 + 2, HZ + 2), pIn = new THREE.Vector3(HX + 16, y0 + 12, HZ + 20);
-  const techo = ['cubierta', 'uma_cubierta', 'chiller_1', 'chiller_2', 'chiller_3', 'chiller_4', 'chiller_1_ventilador', 'chiller_2_ventilador', 'chiller_3_ventilador', 'chiller_4_ventilador', 'noc_cubierta'].map(n => ROOT.getObjectByName(n)).filter(Boolean); const techoVis = techo.map(o => o.visible);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const techo = ['cubierta', 'uma_cubierta', 'uma_ventilador_1', 'uma_ventilador_2', 'chiller_1', 'chiller_2', 'chiller_3', 'chiller_4', 'chiller_1_ventilador', 'chiller_2_ventilador', 'chiller_3_ventilador', 'chiller_4_ventilador', 'noc_cubierta'].map(n => ROOT.getObjectByName(n)).filter(Boolean); const techoVis = techo.map(o => o.visible);
+  const ease = easeInOutCubic;
   const gabMat = gabRf.material, pantMat = pantallaRf.material, rejMat = rejillaRf.material, sensMat = sensorRf.material;
   const IN = 2.0, CAL = 1.8, MED = 1.6, DEC = 1.2, ACT = 1.6, EFE = 2.5, OK = 1.2, OUT = 2.0;
   const T1 = IN, T2 = T1 + CAL, T3 = T2 + MED, T4 = T3 + DEC, T5 = T4 + ACT, T6 = T5 + EFE, T7 = T6 + OK, T8 = T7 + OUT;
@@ -907,7 +932,7 @@ function animarRecursividad() {
   if (rcAnim || enAnim) return; btnRc.disabled = true;
   const cam = stage._camera, ctl = stage._controls; const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
   ctl.autoRotate = false; ctl.enabled = false; const near0 = cam.near; cam.near = 0.05; cam.updateProjectionMatrix();
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const ease = easeInOutCubic;
   const MOVE = 2.0, HOLD = 3.2, start = performance.now();
   let etapa = 0, fase = 'move', tEt = start, pFrom = p0.clone(), tFrom = t0.clone(), hlOn = false;
   const todosRoles = e => n => Object.values(e.roles).some(rx => rx.test(n));
@@ -952,18 +977,18 @@ const satelite = new THREE.Group(); satelite.name = 'satelite'; satelite.positio
 box(satelite, 'satelite_cuerpo', M.concrete, 1.2, 1.2, 1.6, 0, 0, 0);
 box(satelite, 'satelite_panel_1', M.panel, 4, 0.06, 1.2, -3, 0, 0); box(satelite, 'satelite_panel_2', M.panel, 4, 0.06, 1.2, 3, 0, 0);
 const satAnt = new THREE.Mesh(new THREE.SphereGeometry(0.6, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.grey); satAnt.name = 'satelite_antena'; satAnt.position.set(0, -0.9, 0); satAnt.rotation.x = Math.PI; satelite.add(satAnt);
-const antena = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.concrete); antena.name = 'antena_parabolica'; antena.position.set(HX + 7, RY + 0.9, HZ + 4); antena.rotation.x = -0.6; complementos.add(antena);
-box(complementos, 'antena_parabolica_base', M.deepSteel, 0.25, 0.7, 0.25, HX + 7, RY + 0.55, HZ + 4);
+const antena = new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.paper); antena.name = 'antena_parabolica'; antena.position.set(HX + 4.2, RY + 0.72, HZ + 1.6); antena.rotation.x = -0.6; complementos.add(antena);
+box(complementos, 'antena_parabolica_base', M.paper, 0.2, 0.55, 0.2, HX + 4.2, RY + 0.4, HZ + 1.6);
 // 4) Pozo de agua junto al tanque
 cyl(complementos, 'pozo_brocal', M.concrete, 1.0, 0.8, WX, y0 + 0.4, WZ + 4.5, 28);
 cyl(complementos, 'pozo_bomba', M.deepSteel, 0.3, 1.2, WX, y0 + 1.4, WZ + 4.5, 16);
 // Hilos fuente → elemento complementado
 const hilosComp = [
-  ['hilo_central_transformador', [30, 0.2 + 3.6, -22], [TX, y0 + 2.3, TZ]],
-  ['hilo_solar_ups', [31, y0 + 1.2, 12], [UX, y0 + 3.4, UZ]],
-  ['hilo_satelite_antena', [HX + 6, 29.1, HZ - 6], [HX + 7, RY + 1.4, HZ + 4]],
-  ['hilo_antena_meetme', [HX + 7, RY + 0.9, HZ + 4], [MX, y0 + 2.7, MZ]],
-  ['hilo_pozo_tanque', [WX, y0 + 2.0, WZ + 4.5], [WX, y0 + 2.0, WZ]],
+  ['hilo_central_transformador', [30, 0.2 + 3.6, -22], [TX, y0 + 1.8, TZ]],
+  ['hilo_solar_ups', [31, y0 + 1.2, 12], [UX, y0 + 1.6, UZ]],
+  ['hilo_satelite_antena', [HX + 6, 29.1, HZ - 6], [HX + 4.2, RY + 1.1, HZ + 1.6]],
+  ['hilo_antena_meetme', [HX + 4.2, RY + 0.72, HZ + 1.6], [MX, y0 + 1.8, MZ]],
+  ['hilo_pozo_tanque', [WX, y0 + 1.6, WZ + 4.5], [WX, y0 + 1.6, WZ]],
 ].map(([n, a, b]) => { const h = line(complementos, n, M.hiloComp, a, b, 0.05); h.userData.curva = new THREE.LineCurve3(new THREE.Vector3(...a), new THREE.Vector3(...b)); return h; });
 const pulsosComp = hilosComp.map((h, i) => { const p = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), M.pulsoDatos); p.name = `pulso_complemento_${i + 1}`; complementos.add(p); return p; });
 function animarComplementariedad(on) {
@@ -996,8 +1021,8 @@ function animarMulticausalidad() {
   if (mcAnim || enAnim || hoAnim || rfAnim) return; btnMc.disabled = true;
   const cam = stage._camera, ctl = stage._controls; const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate; ctl.autoRotate = false; ctl.enabled = false;
   const foco = new THREE.Vector3(HX - 6, y0 + 2, HZ - 2), pIn = new THREE.Vector3(HX + 22, RY + 20, HZ + 40);
-  const techoMc = ['cubierta', 'uma_cubierta', 'chiller_1', 'chiller_2', 'chiller_3', 'chiller_4', 'chiller_1_ventilador', 'chiller_2_ventilador', 'chiller_3_ventilador', 'chiller_4_ventilador', 'calor_chiller_1', 'calor_chiller_2', 'calor_chiller_3', 'calor_chiller_4', 'antena_parabolica', 'antena_parabolica_base'].map(n => ROOT.getObjectByName(n)).filter(Boolean); const techoMcVis = techoMc.map(o => o.visible);
-  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  const techoMc = ['cubierta', 'uma_cubierta', 'uma_ventilador_1', 'uma_ventilador_2', 'chiller_1', 'chiller_2', 'chiller_3', 'chiller_4', 'chiller_1_ventilador', 'chiller_2_ventilador', 'chiller_3_ventilador', 'chiller_4_ventilador', 'calor_chiller_1', 'calor_chiller_2', 'calor_chiller_3', 'calor_chiller_4', 'antena_parabolica', 'antena_parabolica_base'].map(n => ROOT.getObjectByName(n)).filter(Boolean); const techoMcVis = techoMc.map(o => o.visible);
+  const ease = easeInOutCubic;
   const IN = 2.0, CAUSA = 1.6, CONV = 2.5, HOLD = 3.0, OUT = 2.0; const T1 = IN, T2 = T1 + CAUSA * 3, T3 = T2 + CONV, T4 = T3 + HOLD, T5 = T4 + OUT;
   const start = performance.now(); cielo.visible = true; posCielo(0.05); sol.position.set(HX - 14, RY + 9, HZ + 6); luna.visible = false;
   const hl = new Map(); const marcar = (objs, on) => objs.forEach(o => { if (!o.isMesh) return; if (on) { if (!hl.has(o)) hl.set(o, o.material); const m = hl.get(o).clone(); m.emissive = new THREE.Color(0xc0392b); m.emissiveIntensity = 0.9; o.material = m; } else if (hl.has(o)) o.material = hl.get(o); });
@@ -1018,7 +1043,300 @@ function animarMulticausalidad() {
   });
 }
 
-// ===== UI: capas + selección =====
+// ===== ANIMACIÓN: estructura (recorrido guiado con zooms por etapa) =====
+let esAnim = null;
+M.aireEst = mat('aire_estructura', 0xb5d9fd, 1, 0, { emissive: 0x94bce3, emissiveIntensity: 0.8, transparent: true, opacity: 0.35, depthWrite: false });
+M.estDatos = mat('est_datos', 0x94bce3, 0.2, 0, { emissive: 0x5980a6, emissiveIntensity: 2.2 });
+M.estEnergia = mat('est_energia', 0xe8a01a, 0.3, 0, { emissive: 0xe8a01a, emissiveIntensity: 2.0 });
+const estFx = new THREE.Group(); estFx.name = 'estructura_fx'; estFx.visible = false; ROOT.add(estFx);
+const estAire = new THREE.Group(); estAire.name = 'estructura_aire'; estFx.add(estAire);
+const estPulsos = new THREE.Group(); estPulsos.name = 'estructura_pulsos'; estFx.add(estPulsos);
+const estHlCache = new Map();
+const noRaycast = o => { if (o.isMesh) o.raycast = () => {}; };
+const estPuertas = [];
+filas.forEach(f => f.traverse(o => { if (/^deco_rack_.*_puerta$/.test(o.name)) estPuertas.push(o); }));
+const estPartes = { racks: [], servidores: [], switches: [], red: [], energia: [], bandejas: [], cracs: [] };
+ROOT.traverse(o => {
+  const e = o.userData && o.userData.estructura;
+  if (!e || !o.isMesh) return;
+  if (e.rol === 'rack') estPartes.racks.push(o);
+  else if (e.rol === 'servidor') estPartes.servidores.push(o);
+  else if (e.rol === 'switch') estPartes.switches.push(o);
+  else if (e.rol === 'red') estPartes.red.push(o);
+  else if (e.rol === 'energia') estPartes.energia.push(o);
+  else if (e.rol === 'bandeja') estPartes.bandejas.push(o);
+  else if (e.rol === 'crac') estPartes.cracs.push(o);
+});
+filas.forEach((f, i) => {
+  ['deco_bandeja_cable_rojo_', 'deco_bandeja_cable_azul_'].forEach(pref => {
+    const o = f.getObjectByName(`${pref}${i + 1}`);
+    if (o) { o.userData.estructura = { rol: 'red', fila: i + 1 }; estPartes.red.push(o); }
+  });
+});
+function estSetVisible(list, on) { list.forEach(o => { o.visible = on; }); }
+function estClearHl() {
+  estHlCache.forEach((m, o) => { o.material = m; });
+  estHlCache.clear();
+}
+function estHighlight(objs, on, tint = 0xb5d9fd, em = 0xb497cf, ei = 1.05) {
+  if (!on) { estClearHl(); return; }
+  const set = new Set(objs);
+  ROOT.traverse(o => {
+    if (!o.isMesh || !o.visible || /^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|cielo|sol|luna|eqf_|estructura_|est_)/.test(o.name)) return;
+    if (!estHlCache.has(o)) estHlCache.set(o, o.material);
+    const base = estHlCache.get(o), m = base.clone();
+    if (set.has(o)) { m.emissive = new THREE.Color(em); m.emissiveIntensity = ei; m.color = new THREE.Color(tint); }
+    else { m.color = base.color.clone().lerp(new THREE.Color(0x2b2b2d), 0.65); if (m.emissive) m.emissiveIntensity = (m.emissiveIntensity || 0) * 0.12; if (m.transparent) m.opacity *= 0.45; }
+    o.material = m;
+  });
+}
+function estStopFlujos() {
+  estPulsos.clear(); estAire.clear();
+  if (M.aireEst) M.aireEst.opacity = 0.2;
+}
+function estStartFlujos() {
+  estStopFlujos();
+  const filasVis = filas.filter(f => f.visible);
+  for (let i = 0; i < Math.min(Math.max(filasVis.length - 1, 0), 2); i++) {
+    const zMid = (zFila(i) + zFila(i + 1)) / 2;
+    for (let k = 0; k < 12; k++) {
+      const p = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), M.aireEst);
+      p.name = `est_aire_${i}_${k}`;
+      p.userData = { x0: HX - 4.2 + (k % 6) * 1.7, z: zMid, phase: k / 12, tipo: 'aire' };
+      noRaycast(p); estAire.add(p);
+    }
+  }
+  filasVis.slice(0, 2).forEach((f, fi) => {
+    for (let k = 0; k < 5; k++) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), M.estDatos);
+      b.name = `est_dato_${fi}_${k}`;
+      b.userData = { y: fy + rackH + 0.55, z: zFila(fi), off: k / 5, tipo: 'datos', x0: HX - 4.8, x1: HX + 4.8 };
+      noRaycast(b); estPulsos.add(b);
+    }
+  });
+  estPartes.energia.filter(o => /_power$/.test(o.name) && o.parent && o.parent.parent && o.parent.parent.visible).slice(0, 12).forEach((o, i) => {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), M.estEnergia);
+    b.name = `est_ener_${i}`;
+    const p = o.getWorldPosition(new THREE.Vector3());
+    b.userData = { x: p.x, z: p.z, y0: fy + 0.12, y1: fy + rackH * 0.85, off: i / 12, tipo: 'energia' };
+    noRaycast(b); estPulsos.add(b);
+  });
+}
+function estTickFlujos(t) {
+  const ritmo = 0.5 + 0.5 * Math.sin(t * 2.2);
+  M.aireEst.opacity = 0.28 + 0.32 * ritmo;
+  M.estDatos.emissiveIntensity = 1.4 + 1.0 * ritmo;
+  M.estEnergia.emissiveIntensity = 1.2 + 1.0 * ritmo;
+  estAire.children.forEach(p => {
+    const ph = (p.userData.phase + t * 0.28) % 1;
+    p.position.set(p.userData.x0, fy + 0.35 + ph * 1.7, p.userData.z + Math.sin(ph * Math.PI * 2) * 0.18);
+    p.scale.setScalar(0.65 + 0.45 * Math.sin(ph * Math.PI));
+  });
+  estPulsos.children.forEach(b => {
+    if (b.userData.tipo === 'datos') {
+      const uB = (b.userData.off + t * 0.4) % 1;
+      b.position.set(b.userData.x0 + (b.userData.x1 - b.userData.x0) * uB, b.userData.y, b.userData.z);
+    } else if (b.userData.tipo === 'energia') {
+      const uB = (b.userData.off + t * 0.5) % 1;
+      b.position.set(b.userData.x, b.userData.y0 + (b.userData.y1 - b.userData.y0) * uB, b.userData.z);
+    }
+  });
+}
+function animarEstructura() {
+  if (esAnim || jerAnim || eqfAnim || cpxAnim2) return;
+  const cam = stage._camera, ctl = stage._controls;
+  const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
+  const wasDamp = lockScriptedCam(ctl);
+  if (btnEs) btnEs.disabled = true;
+  cam.near = 0.08; cam.updateProjectionMatrix();
+  ROOT.updateMatrixWorld(true);
+
+  const techo = [];
+  ROOT.traverse(o => { if (/^(cubierta|uma_cubierta|uma_ventilador|uma_rejilla|uma_aro|chiller_|calor_chiller_|estacion_meteo|meteo_|deco_(cubierta|uma_|chiller_|meteo_|anemo_))/.test(o.name)) techo.push(o); });
+  const techoVis = techo.map(o => o.visible);
+  techo.forEach(o => { o.visible = false; });
+  estPuertas.forEach(p => { p.visible = false; });
+
+  // Empezar ocultando equipos/conexiones; racks (gabinetes) visibles
+  estSetVisible(estPartes.servidores, false);
+  estSetVisible(estPartes.switches, false);
+  estSetVisible(estPartes.red, false);
+  estSetVisible(estPartes.energia, false);
+  estPartes.cracs.forEach(o => { o.visible = false; });
+  estFx.visible = true; estStopFlujos();
+
+  const rackFocus = ROOT.getObjectByName('rack_1_4') || ROOT.getObjectByName('rack_2_4') || ROOT.getObjectByName('rack_2_3');
+  const gabFocus = rackFocus && (rackFocus.getObjectByName(`${rackFocus.name}_gabinete`) || rackFocus);
+  const fRack = gabFocus ? gabFocus.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(HX, fy + 1, HZ);
+  const cracFocus = ROOT.getObjectByName('crac_1');
+  const fCrac = cracFocus ? cracFocus.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(HX - 4.4, fy + 1, HZ - HD / 2);
+
+  const V = (a, b) => a.clone().add(b);
+  const foco = new THREE.Vector3(HX, fy + 1.0, HZ);
+  const camIn = new THREE.Vector3(HX + 8.5, y0 + 3.2, HZ + HD / 2 + 5.5);
+  const camRed = V(fRack, new THREE.Vector3(0.55, 2.5, 3.6));
+  const focoRed = fRack.clone().add(new THREE.Vector3(0, 1.45, 0));
+  // Vista trasera de la fila: se ven el bus amarillo y los whips subiendo a cada rack
+  const zEnergia = zFila(0);
+  const camEnergia = new THREE.Vector3(HX + 4.8, fy + 2.1, zEnergia - 3.4);
+  const focoEnergia = new THREE.Vector3(HX - 0.4, fy + 0.85, zEnergia);
+  const camFrio = V(fCrac, new THREE.Vector3(3.2, 2.2, 4.5));
+  const focoFrio = fCrac.clone().lerp(new THREE.Vector3(HX, fy + 0.9, (zFila(0) + zFila(1)) / 2), 0.45);
+  const camTodo = new THREE.Vector3(HX + 10, y0 + 4.2, HZ + HD / 2 + 7.5);
+  const focoTodo = new THREE.Vector3(HX, fy + 1.2, HZ);
+
+  const ease = easeInOutCubic;
+  // 1–3: montaje progresivo en vista sala; luego zooms a red / energía / frío / conjunto
+  const IN = 1.8, P1 = 3.0, P2 = 3.0, P3 = 3.0, MOVE = 1.6, HOLD = 3.0, P6 = 3.4, OUT = 1.6;
+  const T0 = IN, T1 = T0 + P1, T2 = T1 + P2, T3 = T2 + P3;
+  const T3m = T3 + MOVE, T3h = T3m + HOLD;
+  const T4m = T3h + MOVE, T4 = T4m + HOLD;
+  const T5m = T4 + MOVE, T5 = T5m + HOLD;
+  const T6m = T5 + MOVE, T6 = T6m + P6, T7 = T6 + OUT;
+  const start = performance.now();
+  const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+  let eqOn = false, redOn = false, enerOn = false, frioOn = false, flujosOn = false;
+  const eqAll = [...estPartes.servidores, ...estPartes.switches];
+
+  const finish = () => {
+    estClearHl();
+    estStopFlujos();
+    estFx.visible = false;
+    estPuertas.forEach(p => { p.visible = true; });
+    estSetVisible(estPartes.servidores, true);
+    estSetVisible(estPartes.switches, true);
+    estSetVisible(estPartes.red, true);
+    estSetVisible(estPartes.energia, true);
+    estPartes.cracs.forEach(o => { o.visible = true; });
+    techo.forEach((o, i) => { o.visible = techoVis[i]; });
+    unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
+    if (btnEs) btnEs.disabled = false;
+    estado.textContent = '';
+    esAnim = null;
+  };
+
+  const lerpCam = (fromP, toP, fromT, toT, u) => {
+    aimScriptedCam(cam, ctl, tmpP.lerpVectors(fromP, toP, u), tmpT.lerpVectors(fromT, toT, u));
+  };
+
+  esAnim = requestAnimationFrame(function step(now) {
+    const t = (now - start) / 1000;
+    if (t < T0) {
+      const u = ease(t / IN);
+      lerpCam(p0, camIn, t0, foco, u);
+      estado.textContent = 'Estructura · la sala se organiza para operar';
+    } else if (t < T1) {
+      aimScriptedCam(cam, ctl, camIn, foco);
+      const u = (t - T0) / P1;
+      const nShow = Math.floor(u * estPartes.racks.length);
+      estHighlight(estPartes.racks.slice(0, Math.max(nShow, 1)), true);
+      estado.textContent = 'Estructura · 1 · racks organizados en filas';
+    } else if (t < T2) {
+      aimScriptedCam(cam, ctl, camIn, foco);
+      if (!eqOn) {
+        eqOn = true;
+        estClearHl();
+        estSetVisible(estPartes.servidores, true);
+        estSetVisible(estPartes.switches, true);
+      }
+      const u = (t - T1) / P2;
+      const nShow = Math.floor(u * eqAll.length);
+      estHighlight(eqAll.slice(0, Math.max(nShow, 1)), true);
+      estado.textContent = 'Estructura · 2 · servidores y switches dentro de cada rack';
+    } else if (t < T3) {
+      aimScriptedCam(cam, ctl, camIn, foco);
+      if (!redOn) {
+        redOn = true;
+        estSetVisible(estPartes.red, true);
+        estHighlight([...estPartes.red, ...estPartes.switches, ...estPartes.bandejas], true);
+        filas.filter(f => f.visible).slice(0, 2).forEach((f, fi) => {
+          for (let k = 0; k < 5; k++) {
+            const b = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), M.estDatos);
+            b.userData = { y: fy + rackH + 0.55, z: zFila(fi), off: k / 5, tipo: 'datos', x0: HX - 4.8, x1: HX + 4.8 };
+            noRaycast(b); estPulsos.add(b);
+          }
+        });
+      }
+      estTickFlujos(now / 1000);
+      estado.textContent = 'Estructura · 3 · cables de red conectan los equipos';
+    } else if (t < T3m) {
+      const u = ease((t - T3) / MOVE);
+      lerpCam(camIn, camRed, foco, focoRed, u);
+      estTickFlujos(now / 1000);
+      estado.textContent = 'Estructura · 3 · detalle de la red sobre los racks';
+    } else if (t < T3h) {
+      aimScriptedCam(cam, ctl, camRed, focoRed);
+      estTickFlujos(now / 1000);
+      estado.textContent = 'Estructura · 3 · detalle de la red sobre los racks';
+    } else if (t < T4m) {
+      const u = ease((t - T3h) / MOVE);
+      lerpCam(camRed, camEnergia, focoRed, focoEnergia, u);
+      if (!enerOn) {
+        enerOn = true;
+        // Quitar pulsos de red para no mezclar la lectura
+        estPulsos.clear();
+        estSetVisible(estPartes.energia, true);
+        // Amarillo intenso: bus + whips + PDU (no teñir de azul)
+        estHighlight(estPartes.energia, true, 0xffc14a, 0xe8a01a, 2.4);
+        const whips = estPartes.energia.filter(o => /_power$/.test(o.name) && o.visible);
+        const lista = whips.length ? whips : estPartes.energia.filter(o => o.visible).slice(0, 12);
+        lista.forEach((o, i) => {
+          const b = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), M.estEnergia);
+          const p = o.getWorldPosition(new THREE.Vector3());
+          b.userData = { x: p.x, z: p.z, y0: fy + 0.12, y1: fy + rackH * 0.85, off: i / Math.max(lista.length, 1), tipo: 'energia' };
+          noRaycast(b); estPulsos.add(b);
+        });
+      }
+      estTickFlujos(now / 1000);
+      estado.textContent = 'Estructura · 4 · energía sube del piso técnico a cada rack';
+    } else if (t < T4) {
+      aimScriptedCam(cam, ctl, camEnergia, focoEnergia);
+      estTickFlujos(now / 1000);
+      estado.textContent = 'Estructura · 4 · energía sube del piso técnico a cada rack';
+    } else if (t < T5m) {
+      const u = ease((t - T4) / MOVE);
+      lerpCam(camEnergia, camFrio, focoEnergia, focoFrio, u);
+      if (!frioOn) {
+        frioOn = true;
+        estPartes.cracs.forEach(o => { o.visible = true; });
+        estHighlight([...estPartes.cracs], true);
+        for (let i = 0; i < Math.min(Math.max(filas.filter(f => f.visible).length - 1, 0), 2); i++) {
+          const zMid = (zFila(i) + zFila(i + 1)) / 2;
+          for (let k = 0; k < 12; k++) {
+            const p = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), M.aireEst);
+            p.userData = { x0: HX - 4.2 + (k % 6) * 1.7, z: zMid, phase: k / 12, tipo: 'aire' };
+            noRaycast(p); estAire.add(p);
+          }
+        }
+      }
+      estTickFlujos(now / 1000);
+      estado.textContent = 'Estructura · 5 · refrigeración circula por los pasillos';
+    } else if (t < T5) {
+      aimScriptedCam(cam, ctl, camFrio, focoFrio);
+      estTickFlujos(now / 1000);
+      estado.textContent = 'Estructura · 5 · refrigeración circula por los pasillos';
+    } else if (t < T6m) {
+      const u = ease((t - T5) / MOVE);
+      lerpCam(camFrio, camTodo, focoFrio, focoTodo, u);
+      if (!flujosOn) { estClearHl(); estStartFlujos(); flujosOn = true; }
+      estTickFlujos(now / 1000);
+      estado.textContent = 'Estructura · 6 · todo conectado: así funciona el Data Center';
+    } else if (t < T6) {
+      aimScriptedCam(cam, ctl, camTodo, focoTodo);
+      estTickFlujos(now / 1000);
+      estado.textContent = 'Estructura · 6 · todo conectado: así funciona el Data Center';
+    } else if (t < T7) {
+      const u = ease((t - T6) / OUT);
+      lerpCam(camTodo, p0, focoTodo, t0, u);
+      estado.textContent = 'Estructura · la distribución correcta forma el sistema';
+    } else {
+      finish();
+      return;
+    }
+    esAnim = requestAnimationFrame(step);
+  });
+}
+
 const layers = document.getElementById('layers'), sel = document.getElementById('sel');
 // Los 19 principios de la TGS. `grupo` enlaza con un subsistema 3D cuando existe.
 const principios = [
@@ -1077,9 +1395,8 @@ const CAPAS = {
   },
   estructura: {
     label: 'Estructura',
-    desc: 'El armazón que sostiene y ordena al sistema: columnas, cubiertas, muros, piso técnico, bandejas y cerco.',
-    estructura: /^(columna_|cubierta$|.*_cubierta$|sala_muro_|sala_antepecho_|piso_tecnico|placa_sitio|bandeja_cables_|cerco_.*_(poste|riel)|balanza_pivote|balanza_base|noc$|sala_ups$|sala_meet_me$|caseta_vigilancia|luminaria_\d+_poste)/,
-    off: true,
+    desc: 'Racks en filas, servidores y switches, red, energía y refrigeración: la correcta distribución y conexión de componentes forma la estructura que hace funcionar el Data Center.',
+    soloBoton: true,
   },
   equilibrio: {
     label: 'Equilibrio',
@@ -1103,8 +1420,8 @@ const CAPAS = {
   },
   enfriamiento: {
     label: 'Equifinalidad',
-    desc: 'Los elementos que se encargan de disipar la carga térmica y mantener los chips bajo su umbral térmico (no más de 20°C) puede alcanzarse a través de diferentes trayectorias y métodos termodinámicos.',
-    test: n => /^(chiller_|crac_|uma_cubierta|tanque_agua|tuberia_agua_|drenaje_agua|calor_chiller_)/.test(n),
+    desc: 'Diferentes estrategias (redundancia, replicación o disaster recovery) pueden conducir al mismo estado final: mantener el servicio disponible.',
+    soloBoton: true,
   },
 };
 for (const [k, c] of Object.entries(CAPAS)) { c.objetos = []; if (c.test) ROOT.traverse(o => { if (o.isMesh && c.test(o.name)) { c.objetos.push(o); o.userData.capa = k; } }); }
@@ -1113,7 +1430,7 @@ const hlNombre = new Map();
 function resaltarNombre(test, on) {
   if (!on) { hlNombre.forEach((m, o) => o.material = m); hlNombre.clear(); return; }
   ROOT.traverse(o => {
-    if (!o.isMesh || !o.visible || /^(lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|sol|luna|senal|escombro|ventana)/.test(o.name)) return;
+    if (!o.isMesh || !o.visible || /^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|sol|luna|senal|escombro|ventana)/.test(o.name)) return;
     if (!hlNombre.has(o)) hlNombre.set(o, o.material);
     const base = hlNombre.get(o), m = base.clone();
     if (test(o.name)) { m.color = new THREE.Color(0x94bce3); m.emissive = new THREE.Color(0x5980a6); m.emissiveIntensity = 0.9; }
@@ -1146,10 +1463,12 @@ principios.forEach(([label, k, capa], i) => {
   l.innerHTML = ((k || capa) && !(capa && CAPAS[capa].soloBoton))
     ? `<span class="lbl"><input type="checkbox" ${capa && CAPAS[capa].off ? '' : 'checked'} data-k="${k || capa}"><span class="k">${num}</span>${label}</span>`
     : `<span class="lbl"><span class="nocheck"></span><span class="k">${num}</span>${label}</span>`;
-  if (k) l.querySelector('input').onchange = e => { SUB[k].visible = e.target.checked; };
+  if (k) l.querySelector('input').onchange = e => {
+    if (k === 'frontera') { const on = e.target.checked; SUB.frontera.children.forEach(o => { if (/^(deco_)?(placa_sitio|placa_borde_|piso_baldosas|piso_edificio_deco)/.test(o.name)) return; o.visible = on; }); }
+    else SUB[k].visible = e.target.checked;
+  };
   if (capa && CAPAS[capa].soloBoton) { l.title = CAPAS[capa].desc; }
   else if (capa && CAPAS[capa].complemento) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => animarComplementariedad(e.target.checked); }
-  else if (capa && CAPAS[capa].estructura) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => resaltarNombre(n => CAPAS[capa].estructura.test(n), e.target.checked); }
   else if (capa && CAPAS[capa].resaltar) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => resaltar(CAPAS[capa].resaltar, e.target.checked); }
   else if (capa && CAPAS[capa].entropia) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => { if (!enAnim) aplicarDeterioro(e.target.checked ? 1 : 0); }; }
   else if (capa && CAPAS[capa].loma) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => { if (!adAnim) elevarSitio(e.target.checked ? LOMA_H : 0); }; }
@@ -1159,13 +1478,31 @@ principios.forEach(([label, k, capa], i) => {
   else if (capa) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => { const on = e.target.checked; CAPAS[capa].objetos.forEach(o => o.visible = on); (CAPAS[capa].grupos || []).forEach(g => { SUB[g].visible = on; const cb = layers.querySelector(`input[data-k="${g}"]`); if (cb) cb.checked = on; }); }; }
   if (capa === 'complejidad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnCpx'; b.textContent = 'Crecer'; b.title = 'Zoom a la sala: las filas se duplican de 2 a 6'; b.onclick = ev => { ev.preventDefault(); animarComplejidad(); }; l.appendChild(b); }
   if (capa === 'jerarquia') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnJer'; b.textContent = 'Anim'; b.title = 'Recorrido chip → blade → rack → sistema'; b.onclick = ev => { ev.preventDefault(); animarJerarquia(); }; l.appendChild(b); }
-  if (capa === 'enfriamiento') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnZoom'; b.textContent = 'Zoom'; b.title = 'Acercar al termómetro del servidor'; b.onclick = ev => { ev.preventDefault(); zoomTermometro(); }; l.appendChild(b); }
+  if (capa === 'enfriamiento') {
+    const group = document.createElement('span');
+    group.className = 'btn-group';
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', 'Caminos de equifinalidad');
+    [['A', 'A', 'Redundancia de servidores: si uno falla, el otro continúa'],
+     ['B', 'B', 'Replicación: los datos se mantienen sincronizados en otro sistema'],
+     ['C', 'C', 'Disaster Recovery: si falla el sitio principal, se activa otro']].forEach(([id, txt, tip]) => {
+      const b = document.createElement('button');
+      b.className = 'btn-rayo btn-rayo--sm';
+      b.id = `btnEqf${id}`;
+      b.textContent = txt;
+      b.title = tip;
+      b.onclick = ev => { ev.preventDefault(); animarEquifinalidad(id); };
+      group.appendChild(b);
+    });
+    l.appendChild(group);
+  }
   if (k === 'entorno') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnRayo'; b.textContent = 'Rayo'; b.title = 'Simular descarga sobre la red eléctrica'; b.onclick = ev => { ev.preventDefault(); simularRayo(); }; l.appendChild(b); }
   if (capa === 'adaptabilidad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnAd'; b.textContent = 'Inundar'; b.title = 'El sitio sube a una loma y la inundación no lo alcanza'; b.onclick = ev => { ev.preventDefault(); animarAdaptabilidad(); }; l.appendChild(b); }
   if (capa === 'entropia') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnEn'; b.textContent = 'Tiempo'; b.title = 'Pasan días y noches; las instalaciones se deterioran hasta la ruina'; b.onclick = ev => { ev.preventDefault(); animarEntropia(); }; l.appendChild(b); }
   if (capa === 'neguentropia') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnNg'; b.textContent = 'Reparar'; b.title = 'Con energía del entorno, el mantenimiento revierte las ruinas'; b.onclick = ev => { ev.preventDefault(); animarNeguentropia(); }; l.appendChild(b); }
   if (capa === 'homeostasis') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnHo'; b.textContent = 'Ciclo'; b.title = 'Día y noche: la refrigeración se regula, la temperatura se mantiene'; b.onclick = ev => { ev.preventDefault(); animarHomeostasis(); }; l.appendChild(b); }
   if (capa === 'equilibrio') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnEq'; b.textContent = 'Balanza'; b.title = 'Entradas y salidas se compensan; tras una perturbación el sistema vuelve al equilibrio'; b.onclick = ev => { ev.preventDefault(); animarEquilibrio(); }; l.appendChild(b); }
+  if (capa === 'estructura') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnEs'; b.textContent = 'Montar'; b.title = 'Recorrido: racks, equipos, red, energía y refrigeración'; b.onclick = ev => { ev.preventDefault(); animarEstructura(); }; l.appendChild(b); }
   if (capa === 'recursividad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnRc'; b.textContent = 'Escalas'; b.title = 'El mismo esquema de sistema en rack, datacenter y ciudad'; b.onclick = ev => { ev.preventDefault(); animarRecursividad(); }; l.appendChild(b); }
   if (capa === 'multicausalidad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnMc'; b.textContent = 'Causas'; b.title = 'Sol, demanda y un CRAC averiado convergen en un mismo efecto'; b.onclick = ev => { ev.preventDefault(); animarMulticausalidad(); }; l.appendChild(b); }
   if (k === 'retroalimentacion') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnRf'; b.textContent = 'Lazo'; b.title = 'Sensor → NOC → CRAC → efecto medido de nuevo'; b.onclick = ev => { ev.preventDefault(); animarRetroalimentacion(); }; l.appendChild(b); }
@@ -1174,43 +1511,57 @@ principios.forEach(([label, k, capa], i) => {
 });
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
 let picked = null, savedMat = null;
-stage.addEventListener('pointerdown', e => { ptr.dx = e.clientX; ptr.dy = e.clientY; });
-stage.addEventListener('pointerup', e => {
+const pickEl = stage._renderer?.domElement || stage;
+const onPickDown = e => { ptr.dx = e.clientX; ptr.dy = e.clientY; };
+const onPickUp = e => {
   if (Math.hypot(e.clientX - ptr.dx, e.clientY - ptr.dy) > 4) return; // fue un arrastre
-  const cam = stage._camera, rect = stage.getBoundingClientRect();
+  const cam = stage._camera;
+  const rect = (stage._renderer?.domElement || stage).getBoundingClientRect();
   ptr.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
   ray.setFromCamera(ptr, cam);
-  const noPick = o => { for (let p = o; p && p !== ROOT; p = p.parent) if (!p.visible) return true; return o.isPoints || o.isLight || /^(lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|cielo|sol|luna)/.test(o.name) || (o.material && o.material.transparent && o.material.opacity < 0.05); };
+  const noPick = o => {
+    for (let p = o; p && p !== ROOT; p = p.parent) if (!p.visible) return true;
+    if (o.isPoints || o.isLight) return true;
+    if (/^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|cielo|sol|luna|eqf_|est_aire|est_dato|est_ener)/.test(o.name)) return true;
+    if (o.material && o.material.transparent && o.material.opacity < 0.05) return true;
+    return false;
+  };
   const hits = ray.intersectObjects(ROOT.children.filter(g => g.visible), true).filter(h => h.object.isMesh && !noPick(h.object));
   if (picked) { picked.material = savedMat; picked = null; }
   if (!hits.length) { sel.textContent = '—'; return; }
   const obj = hits[0].object;
   let sub = obj; while (sub.parent && sub.parent !== ROOT) sub = sub.parent;
   picked = obj; savedMat = obj.material;
-  obj.material = savedMat.clone(); obj.material.emissive = new THREE.Color(0x5980a6); obj.material.emissiveIntensity = 0.9;
+  obj.material = savedMat.clone(); obj.material.emissive = new THREE.Color(0xb497cf); obj.material.emissiveIntensity = 0.95;
   sel.innerHTML = `<b>${obj.name}</b>${sub.userData.label} — ${sub.userData.desc}` + (obj.userData.capa ? `<br><br><b>${CAPAS[obj.userData.capa].label}</b>${CAPAS[obj.userData.capa].desc}` : '');
-});
-const btnRayo = document.getElementById('btnRayo'), btnMc = document.getElementById('btnMc'), btnRc = document.getElementById('btnRc'), btnRf = document.getElementById('btnRf'), btnEq = document.getElementById('btnEq'), btnHo = document.getElementById('btnHo'), btnNg = document.getElementById('btnNg'), btnEn = document.getElementById('btnEn'), btnAd = document.getElementById('btnAd'), btnRes = document.getElementById('btnRes'), btnZoom = document.getElementById('btnZoom'), btnJer = document.getElementById('btnJer'), btnCpx = document.getElementById('btnCpx');
+};
+pickEl.addEventListener('pointerdown', onPickDown);
+pickEl.addEventListener('pointerup', onPickUp);
+const btnRayo = document.getElementById('btnRayo'), btnMc = document.getElementById('btnMc'), btnRc = document.getElementById('btnRc'), btnRf = document.getElementById('btnRf'), btnEq = document.getElementById('btnEq'), btnHo = document.getElementById('btnHo'), btnNg = document.getElementById('btnNg'), btnEn = document.getElementById('btnEn'), btnAd = document.getElementById('btnAd'), btnRes = document.getElementById('btnRes'), btnEqfA = document.getElementById('btnEqfA'), btnEqfB = document.getElementById('btnEqfB'), btnEqfC = document.getElementById('btnEqfC'), btnJer = document.getElementById('btnJer'), btnCpx = document.getElementById('btnCpx'), btnEs = document.getElementById('btnEs');
 // ===== Iluminación día / noche =====
 let lampBase = 0, salaBase = 0, farolBase = 0;
 function setModo(noche) {
   modoNoche = noche;
-  document.body.classList.toggle('noche', noche);
+  (stage.closest('.dc-page') || document.body).classList.toggle('noche', noche);
   document.getElementById('mNoche').setAttribute('aria-pressed', noche); document.getElementById('mDia').setAttribute('aria-pressed', !noche);
-  stage.style.setProperty('--stage-bg', noche ? '#1d2d3d' : '#f2f2f3');
-  stage.style.setProperty('--stage-note', noche ? '#b5d9fd' : 'rgba(26, 25, 21, 0.55)');
-  stage._hemi.intensity = noche ? 0.12 : 1.0; stage._hemi.color.setHex(noche ? 0x94bce3 : 0xffffff); stage._hemi.groundColor.setHex(noche ? 0x1d2d3d : 0xd8d2c4);
-  stage._key.intensity = noche ? 0.25 : 2.2; stage._key.color.setHex(noche ? 0xb5d9fd : 0xffffff);
-  stage._fill.intensity = noche ? 0.05 : 0.5;
-  lampBase = noche ? 60 : 0; salaBase = noche ? 90 : 0; farolBase = noche ? 45 : 0; M.farol.emissiveIntensity = noche ? 1.6 : 0.4; faroles.forEach(l => l.intensity = farolBase);
-  ledBase.ei = noche ? 2.4 : 1.2; M.lampara.emissiveIntensity = noche ? 1.8 : 0.4;
+  const bg = noche ? '#0a0a0a' : '#d8e6f2';
+  stage.style.setProperty('--stage-bg', bg);
+  stage.style.setProperty('--stage-note', noche ? '#c9b6df' : 'rgba(26, 25, 21, 0.5)');
+  stage.style.setProperty('--stage-toolbar-bg', noche ? 'rgba(10, 10, 10, 0.78)' : 'rgba(255, 255, 255, 0.92)');
+  stage.style.setProperty('--stage-toolbar-ink', noche ? '#f4f7ff' : '#2c4a64');
+  stage.style.setProperty('--stage-toolbar-border', noche ? 'rgba(244, 247, 255, 0.14)' : 'rgba(29, 45, 61, 0.14)');
+  stage._hemi.intensity = noche ? 0.38 : 0.95; stage._hemi.color.setHex(noche ? 0xb497cf : 0xe8f0f8); stage._hemi.groundColor.setHex(noche ? 0x0a0a0a : 0xc0ccd8);
+  stage._key.intensity = noche ? 0.68 : 1.85; stage._key.color.setHex(noche ? 0xd7c6ea : 0xfff4ea);
+  stage._fill.intensity = noche ? 0.2 : 0.52;
+  if (stage._rim) { stage._rim.intensity = noche ? 0.18 : 0.32; stage._rim.color.setHex(0xd7c6ea); }
+  lampBase = noche ? 80 : 0; salaBase = noche ? 120 : 0; farolBase = noche ? 75 : 0; M.farol.emissiveIntensity = noche ? 1.55 : 0.35; faroles.forEach(l => l.intensity = farolBase);
+  ledBase.ei = noche ? 2.2 : 1.15; M.lampara.emissiveIntensity = noche ? 1.7 : 0.35;
+  M.lampWarm.emissiveIntensity = noche ? 1.5 : 0.3; lucesNoc.forEach(l => l.intensity = noche ? 1.05 : 0.18);
   if (!anim) setLeds(true);
   if (entropiaK > 0) aplicarDeterioro(entropiaK);
 }
 document.getElementById('mDia').onclick = () => setModo(false);
 document.getElementById('mNoche').onclick = () => setModo(true);
-setModo(true);
-window.datacenter = { root: ROOT, subsystems: SUB, materials: M, THREE, stage, simularRayo, setModo, zoomTermometro, animarJerarquia, animarComplejidad, animarFlujo, animarEmergencia, animarAdaptabilidad, animarEntropia, animarNeguentropia, animarHomeostasis, animarEquilibrio, animarRetroalimentacion, animarRecursividad, animarComplementariedad, animarMulticausalidad, aplicarDeterioro, elevarSitio, mostrarFilas };
-</script>
-</body>
-</html>
+setModo(new URLSearchParams(location.search).has('dia') ? false : true);
+window.datacenter = { root: ROOT, subsystems: SUB, materials: M, THREE, stage, simularRayo, setModo, animarEquifinalidad, animarJerarquia, animarComplejidad, animarFlujo, animarEmergencia, animarAdaptabilidad, animarEntropia, animarNeguentropia, animarHomeostasis, animarEquilibrio, animarRetroalimentacion, animarRecursividad, animarComplementariedad, animarMulticausalidad, animarEstructura, aplicarDeterioro, elevarSitio, mostrarFilas };
+}
