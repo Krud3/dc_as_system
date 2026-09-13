@@ -126,6 +126,21 @@ three-d-stage {
 
 #panel label.row {
   justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+#panel .btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+
+.btn-rayo--sm {
+  min-width: 26px;
+  padding: 3px 7px;
+  letter-spacing: 0.04em;
 }
 
 #panel label .lbl {

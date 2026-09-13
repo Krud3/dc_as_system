@@ -43,18 +43,40 @@ for (let r = 0; r < rows; r++) {
   for (let c = 0; c < perRow; c++) {
     const x = HX - ((perRow - 1) * rackPitch) / 2 + c * rackPitch;
     const rack = new THREE.Group(); rack.name = `rack_${r + 1}_${c + 1}`; fila.add(rack);
-    box(rack, `${rack.name}_gabinete`, M.rack, rackW, rackH, rackD, x, fy + rackH / 2, z);
-    for (let s = 0; s < 6; s++) {
-      box(rack, `${rack.name}_servidor_${s + 1}`, M.ink, rackW - 0.1, 0.2, 0.02, x, fy + 0.32 + s * 0.28, z + rackD / 2 + 0.011);
+    const gab = box(rack, `${rack.name}_gabinete`, M.rack, rackW, rackH, rackD, x, fy + rackH / 2, z);
+    gab.userData.estructura = { rol: 'rack', fila: r + 1, col: c + 1 };
+    for (let s = 0; s < 5; s++) {
+      const srv = box(rack, `${rack.name}_servidor_${s + 1}`, M.ink, rackW - 0.1, 0.2, 0.02, x, fy + 0.32 + s * 0.28, z + rackD / 2 + 0.011);
+      srv.userData.estructura = { rol: 'servidor', rack: rack.name, fila: r + 1, col: c + 1 };
       box(rack, `${rack.name}_servidor_${s + 1}_led`, M.led, 0.04, 0.03, 0.01, x + 0.16, fy + 0.32 + s * 0.28, z + rackD / 2 + 0.024);
       box(rack, `${rack.name}_servidor_${s + 1}_led2`, M.led, 0.025, 0.025, 0.01, x + 0.1, fy + 0.32 + s * 0.28, z + rackD / 2 + 0.024);
     }
+    // Switch ToR (top-of-rack) en el slot superior
+    const sw = box(rack, `${rack.name}_switch`, M.pduBlue, rackW - 0.1, 0.18, 0.04, x, fy + 0.32 + 5 * 0.28, z + rackD / 2 + 0.015);
+    sw.userData.estructura = { rol: 'switch', rack: rack.name, fila: r + 1, col: c + 1 };
+    box(rack, `${rack.name}_switch_led`, M.ledGreen, 0.035, 0.025, 0.01, x + 0.16, fy + 0.32 + 5 * 0.28, z + rackD / 2 + 0.038);
+    box(rack, `${rack.name}_switch_puerto`, M.deepSteel, 0.22, 0.06, 0.02, x - 0.08, fy + 0.32 + 5 * 0.28, z + rackD / 2 + 0.036);
+    // Acometida eléctrica al rack: bus inferior + whip vertical + PDU lateral
+    const px = x - rackW / 2 - 0.08, pz = z - rackD / 2 + 0.1;
+    const pwrBase = box(rack, `${rack.name}_power_base`, M.yellowDark, 0.14, 0.1, 0.14, px, fy + 0.08, pz);
+    pwrBase.userData.estructura = { rol: 'energia', rack: rack.name, fila: r + 1, col: c + 1 };
+    const pwr = box(rack, `${rack.name}_power`, M.yellow, 0.08, rackH * 0.78, 0.08, px, fy + rackH * 0.48, pz);
+    pwr.userData.estructura = { rol: 'energia', rack: rack.name, fila: r + 1, col: c + 1 };
+    const pdu = box(rack, `${rack.name}_pdu`, M.yellowDark, 0.07, rackH * 0.72, 0.1, x - rackW / 2 + 0.02, fy + rackH * 0.5, z);
+    pdu.userData.estructura = { rol: 'energia', rack: rack.name, fila: r + 1, col: c + 1 };
+    // Bajante de red desde la bandeja
+    const net = box(rack, `${rack.name}_net_drop`, M.pipeBlue, 0.025, 0.42, 0.025, x + 0.12, fy + rackH + 0.22, z);
+    net.userData.estructura = { rol: 'red', rack: rack.name, fila: r + 1, col: c + 1 };
     // puerta frontal con textura de leds (ilustración) + zócalo + tirador
     decoBox(rack, `rack_${r + 1}_${c + 1}_puerta`, M.rackFront, rackW - 0.06, rackH - 0.12, 0.025, x, fy + rackH / 2, z + rackD / 2 + 0.012);
     decoBox(rack, `rack_${r + 1}_${c + 1}_zocalo`, M.deepSteel, rackW, 0.08, rackD, x, fy + 0.04, z);
     decoBox(rack, `rack_${r + 1}_${c + 1}_techo`, M.deepSteel, rackW, 0.05, rackD, x, fy + rackH + 0.025, z);
   }
-  box(fila, `bandeja_cables_${r + 1}`, M.steelLight, perRow * rackPitch + 0.3, 0.06, 0.22, HX, fy + rackH + 0.45, z);
+  // Bus eléctrico bajo los racks (piso técnico → whips)
+  const bus = box(fila, `bus_electrico_${r + 1}`, M.yellow, perRow * rackPitch + 0.15, 0.07, 0.1, HX, fy + 0.08, z - rackD / 2 + 0.1);
+  bus.userData.estructura = { rol: 'energia', fila: r + 1 };
+  const bandeja = box(fila, `bandeja_cables_${r + 1}`, M.steelLight, perRow * rackPitch + 0.3, 0.06, 0.22, HX, fy + rackH + 0.45, z);
+  bandeja.userData.estructura = { rol: 'bandeja', fila: r + 1 };
   // cables de colores sobre la bandeja (rojo/azul como la referencia)
   decoBox(fila, `bandeja_cable_rojo_${r + 1}`, M.pipeRed, perRow * rackPitch + 0.2, 0.035, 0.07, HX, fy + rackH + 0.5, z - 0.05);
   decoBox(fila, `bandeja_cable_azul_${r + 1}`, M.pipeBlue, perRow * rackPitch + 0.2, 0.035, 0.07, HX, fy + rackH + 0.5, z + 0.06);
@@ -70,8 +92,10 @@ for (let r = 0; r < rows; r++) {
 }
 for (let i = 0; i < 3; i++) {
   const x = HX - 4.4 + i * 4.4;
-  box(P, `crac_${i + 1}`, M.cabinetWhite, 1.45, 2.05, 0.7, x, fy + 1.02, HZ - HD / 2 + WT + 0.42);
-  box(P, `crac_${i + 1}_rejilla`, M.grille, 1.15, 0.9, 0.03, x, fy + 1.35, HZ - HD / 2 + WT + 0.78);
+  const crac = box(P, `crac_${i + 1}`, M.cabinetWhite, 1.45, 2.05, 0.7, x, fy + 1.02, HZ - HD / 2 + WT + 0.42);
+  crac.userData.estructura = { rol: 'crac', idx: i + 1 };
+  const rej = box(P, `crac_${i + 1}_rejilla`, M.grille, 1.15, 0.9, 0.03, x, fy + 1.35, HZ - HD / 2 + WT + 0.78);
+  rej.userData.estructura = { rol: 'crac', idx: i + 1 };
   decoBox(P, `crac_panel_${i}`, M.deepSteel, 1.15, 0.5, 0.03, x, fy + 0.45, HZ - HD / 2 + WT + 0.78);
   decoBox(P, `crac_led_${i}`, M.ledGreen, 0.12, 0.06, 0.02, x + 0.4, fy + 1.85, HZ - HD / 2 + WT + 0.78);
   decoBox(P, `crac_tubo_${i}`, M.pipeBlue, 0.09, 1.9, 0.09, x - 0.85, fy + 0.95, HZ - HD / 2 + WT + 0.4);

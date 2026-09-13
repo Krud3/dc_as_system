@@ -30,7 +30,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'El sistema puede utilizar diferentes medios o caminos para alcanzar un mismo objetivo.',
     ejemplo:
-      'Sostener la misma temperatura de suministro en sala mediante: a) chillers por compresión de vapor, b) enfriamiento evaporativo directo, o c) enfriamiento líquido directo al chip (direct-to-chip).',
+      'Mantener el servicio disponible mediante: a) redundancia de servidores, b) replicación de datos, o c) disaster recovery en otro sitio. Distintas estrategias, mismo estado final.',
   },
   {
     n: 5,
@@ -126,7 +126,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'Configuración y disposición de los componentes de forma relacionada de acuerdo con las funciones del sistema.',
     ejemplo:
-      'Confinamiento físico y segregación hermética entre pasillos fríos (inyección inferior por suelo técnico) y pasillos calientes (extracción superior por cielo falso).',
+      'Racks en filas con servidores y switches, cables de red, acometidas eléctricas y refrigeración en los pasillos: la distribución y conexión de estos elementos forma la estructura que permite operar el Data Center.',
   },
   {
     n: 17,
