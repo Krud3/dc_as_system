@@ -60,9 +60,9 @@ export const PRINCIPIOS_TGS = [
     n: 8,
     nombre: 'Emergencia',
     aplicacion:
-      'El funcionamiento en conjunto de los elementos produce características que no tienen cada componente de manera separada.',
+      'La emergencia se refiere a algo que aparece como resultado de la interacción de diferentes elementos del sistema.',
     ejemplo:
-      'Cuando los servidores, la red, la energía y la refrigeración interactúan como un conjunto, surge una propiedad que ninguno de ellos tiene por separado: el servicio en la nube. Ese servicio llega a la ciudad y solo existe en el sistema completo, no en un componente aislado.',
+      'En la maqueta, la emergencia se representa con humo que aparece dentro del Data Center y se acumula hasta formar una nube sobre el sistema. Esa condición no estaba al inicio: surge de la interacción de los componentes.',
   },
   {
     n: 9,
