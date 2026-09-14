@@ -633,103 +633,118 @@ function animarComplejidad() {
   });
 }
 
-// ===== ANIMACIÓN: emergencia (interacción → nube → servicio a la ciudad) =====
-let emAnim = null, emFlujo = false;
+// ===== ANIMACIÓN: emergencia (interacción → humo interior → nube) =====
+let emAnim = null;
 M.hilo = mat('hilo', 0xb5d9fd, 0.3, 0, { emissive: 0x94bce3, emissiveIntensity: 1.5, transparent: true, opacity: 0.9 });
-// Nube tipo icono “cloud”: cuerpo sólido + borde suave (no humo)
-M.nube = mat('nube', 0xf4f8fc, 0.55, 0.05, { emissive: 0xd7e8f8, emissiveIntensity: 0.35, transparent: true, opacity: 0, depthWrite: true });
-M.nubeBorde = mat('nube_borde', 0x9ec4e8, 0.45, 0.08, { emissive: 0x7aaed8, emissiveIntensity: 0.55, transparent: true, opacity: 0, depthWrite: false });
 M.ventana = mat('ventana', 0xb5d9fd, 0.4, 0, { emissive: 0xb5d9fd, emissiveIntensity: 0, transparent: true, opacity: 0.95 });
-const emergente = new THREE.Group(); emergente.name = 'emergencia'; emergente.visible = false; emergente.userData = { label: 'Emergencia', desc: 'Propiedad que surge de la interacción del conjunto' }; ROOT.add(emergente);
-// Silueta de nube de servicio (icono cloud): base ancha + lóbulos superiores
-const nubeC = new THREE.Vector3(HX, RY + 6.2, HZ);
+M.humoEmerg = mat('humo_emergencia', 0x7a7a7e, 1, 0, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+M.nube = mat('nube', 0x8e9399, 0.85, 0.02, { emissive: 0x6e7378, emissiveIntensity: 0.08, transparent: true, opacity: 0, depthWrite: false });
+M.nubeBorde = mat('nube_borde', 0x6a6e74, 0.7, 0.04, { emissive: 0x55595e, emissiveIntensity: 0.1, transparent: true, opacity: 0, depthWrite: false });
+const emergente = new THREE.Group(); emergente.name = 'emergencia'; emergente.visible = false; emergente.userData = { label: 'Emergencia', desc: 'Condición nueva que surge de la interacción del conjunto' }; ROOT.add(emergente);
+// Ventanas de ciudad (otras animaciones las usan vía M.ventana / edificios)
+const edificios = []; E.traverse(o => { if (o.isMesh && /^ciudad_/.test(o.name)) edificios.push(o); });
+edificios.forEach((b, i) => { const p = b.geometry.parameters; for (let f = 0; f < Math.floor(p.height / 1.4); f++) for (let c = 0; c < 2; c++) {
+  const w = box(emergente, `ventana_${i + 1}_${f + 1}_${c + 1}`, M.ventana, 0.5, 0.6, 0.02, b.position.x - p.width / 4 + c * p.width / 2, 0.2 + 0.9 + f * 1.4, b.position.z + p.depth / 2 + 0.02); w.userData.edificio = b; } });
+// Hilos: interacción entre racks (aleatorios, breves)
+const hilosRack = new THREE.Group(); hilosRack.name = 'hilos_interaccion'; emergente.add(hilosRack);
+// Humo pequeño dentro de la sala (sobre pasillos entre racks)
+const humoSala = new THREE.Group(); humoSala.name = 'humo_emergencia'; emergente.add(humoSala);
+[
+  [HX - 0.8, fy + rackH + 0.15, HZ - 0.35, 0.35, 0.55, 0.32],
+  [HX + 0.9, fy + rackH + 0.2, HZ + 0.45, 0.4, 0.65, 0.36],
+  [HX + 0.1, fy + rackH + 0.35, HZ - 0.9, 0.3, 0.5, 0.28],
+].forEach(([x, y, z, sx, sy, sz], i) => {
+  const s = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), M.humoEmerg);
+  s.name = `humo_emergencia_${i + 1}`;
+  s.scale.set(sx, sy, sz);
+  s.position.set(x, y, z);
+  s.userData.base = s.position.clone();
+  s.userData.baseScale = new THREE.Vector3(sx, sy, sz);
+  s.userData.phase = i * 0.9;
+  humoSala.add(s);
+});
+// Nube exterior: el humo interior se acumula y forma la nube sobre el edificio
+const nubeC = new THREE.Vector3(HX, RY + 5.4, HZ);
 const nube = new THREE.Group(); nube.name = 'nube'; emergente.add(nube);
 nube.position.copy(nubeC);
 const addNubeLobulo = (name, matRef, rx, ry, rz, x, y, z) => {
   const s = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20), matRef);
   s.name = name; s.scale.set(rx, ry, rz); s.position.set(x, y, z); nube.add(s); return s;
 };
-// Cuerpo principal (más opaco, forma reconocible)
 [
   ['nube_base', M.nube, 4.2, 1.55, 2.4, 0, 0, 0],
   ['nube_lob_izq', M.nube, 2.1, 1.9, 2.0, -2.6, 0.55, 0.15],
   ['nube_lob_cen', M.nube, 2.6, 2.35, 2.2, 0.1, 1.15, -0.1],
   ['nube_lob_der', M.nube, 2.2, 2.0, 2.05, 2.7, 0.65, 0.2],
   ['nube_lob_atras', M.nube, 2.0, 1.7, 1.9, -0.8, 0.85, -1.3],
-].forEach(([n, m, rx, ry, rz, x, y, z], i) => addNubeLobulo(n, m, rx, ry, rz, x, y, z));
-// Halo suave para volumen sin parecer humo
+].forEach(([n, m, rx, ry, rz, x, y, z]) => addNubeLobulo(n, m, rx, ry, rz, x, y, z));
 [
   ['nube_halo_1', M.nubeBorde, 4.6, 1.75, 2.7, 0, -0.05, 0],
   ['nube_halo_2', M.nubeBorde, 2.9, 2.55, 2.4, 0.1, 1.2, -0.1],
 ].forEach(([n, m, rx, ry, rz, x, y, z]) => addNubeLobulo(n, m, rx, ry, rz, x, y, z));
-// Rótulo discreto bajo la nube para anclar el significado
-{ const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
-  const c = cv.getContext('2d');
-  c.clearRect(0, 0, 512, 128);
-  c.fillStyle = 'rgba(29, 45, 61, 0.82)'; c.fillRect(24, 24, 464, 80);
-  c.strokeStyle = '#94bce3'; c.lineWidth = 4; c.strokeRect(26, 26, 460, 76);
-  c.fillStyle = '#f2f2f3'; c.font = '700 48px "Barlow Condensed", "Arial Narrow", sans-serif';
-  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('SERVICIO EN LA NUBE', 256, 66);
-  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-  const rotNube = new THREE.Mesh(
-    new THREE.PlaneGeometry(7.2, 1.8),
-    new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, depthTest: false, depthWrite: false }),
-  );
-  rotNube.name = 'nube_rotulo'; rotNube.position.set(0, -2.6, 0); rotNube.renderOrder = 12; nube.add(rotNube);
-  nube.userData.rotulo = rotNube;
-}
 nube.scale.setScalar(0.01);
-// Ventanas en los edificios (se iluminan cuando llega el servicio)
-const edificios = []; E.traverse(o => { if (o.isMesh && /^ciudad_/.test(o.name)) edificios.push(o); });
-edificios.forEach((b, i) => { const p = b.geometry.parameters; for (let f = 0; f < Math.floor(p.height / 1.4); f++) for (let c = 0; c < 2; c++) {
-  const w = box(emergente, `ventana_${i + 1}_${f + 1}_${c + 1}`, M.ventana, 0.5, 0.6, 0.02, b.position.x - p.width / 4 + c * p.width / 2, 0.2 + 0.9 + f * 1.4, b.position.z + p.depth / 2 + 0.02); w.userData.edificio = b; } });
-// Hilos: interacción entre racks (aleatorios, breves) y nube → edificios (persistentes)
-const hilosRack = new THREE.Group(); hilosRack.name = 'hilos_interaccion'; emergente.add(hilosRack);
-const hilosCiudad = new THREE.Group(); hilosCiudad.name = 'hilos_servicio'; emergente.add(hilosCiudad);
-const puntoNube = new THREE.Vector3(HX, RY + 0.3, HZ); // convergen en el datacenter (centro de la cubierta)
-edificios.forEach((b, i) => { const p = b.geometry.parameters; const B = puntoNube.clone(), A = new THREE.Vector3(b.position.x, 0.2 + p.height + 0.2, b.position.z); const len = A.distanceTo(B);
-  const geo = new THREE.CylinderGeometry(0.05, 0.05, len, 10); geo.translate(0, len / 2, 0); // origen en el edificio; crece hacia la nube
-  const h = new THREE.Mesh(geo, M.hilo); h.name = `hilo_servicio_${i + 1}`; h.userData.edificio = b; h.position.copy(A); h.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize()); h.scale.y = 0.001; hilosCiudad.add(h); });
-// Ventanas y haces siguen la visibilidad de su edificio (Complejidad on/off)
 function sincronizarCiudad() { emergente.traverse(o => { if (o.userData && o.userData.edificio) o.visible = o.userData.edificio.visible; }); }
 const topeRack = r => { const g = r.getObjectByName(`${r.name}_gabinete`); return g ? g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, rackH / 2 + 0.15, 0)) : null; };
+function resetHumoEmergencia() {
+  M.humoEmerg.opacity = 0;
+  M.nube.opacity = 0; M.nubeBorde.opacity = 0;
+  nube.scale.setScalar(0.01); nube.position.copy(nubeC);
+  humoSala.children.forEach(s => {
+    s.position.copy(s.userData.base);
+    s.scale.copy(s.userData.baseScale).multiplyScalar(0.01);
+  });
+}
+resetHumoEmergencia();
 function animarEmergencia(on) {
   if (!on) {
     if (emAnim) cancelAnimationFrame(emAnim); emAnim = null; emergente.visible = false; hilosRack.clear();
-    M.nube.opacity = 0; M.nubeBorde.opacity = 0; M.ventana.emissiveIntensity = 0;
-    if (nube.userData.rotulo) nube.userData.rotulo.material.opacity = 0;
-    nube.scale.setScalar(0.01); nube.position.copy(nubeC);
-    hilosCiudad.children.forEach(h => { h.scale.y = 0.001; });
+    resetHumoEmergencia();
     return;
   }
   if (emAnim) return;
   openGuide(8);
-  emergente.visible = true; sincronizarCiudad(); const start = performance.now(); let ultimo = 0; const activos = [];
+  emergente.visible = true; sincronizarCiudad(); resetHumoEmergencia();
+  const start = performance.now(); let ultimo = 0; const activos = [];
   emAnim = requestAnimationFrame(function step(now) {
     const t = (now - start) / 1000;
-    // 1) interacción: hilos entre racks, cada vez más densos (0–3 s)
-    const dens = Math.min(t / 3, 1), intervalo = 0.5 - 0.4 * dens;
+    // 1) interacción: hilos entre racks, cada vez más densos (0–2.5 s)
+    const dens = Math.min(t / 2.5, 1), intervalo = 0.5 - 0.4 * dens;
     const vis = filas.filter(f => f.visible).flatMap(f => f.children.filter(c => c.name.startsWith('rack_')));
     if (t - ultimo > intervalo && vis.length > 1) { ultimo = t; const a = vis[Math.floor(Math.random() * vis.length)], b = vis[Math.floor(Math.random() * vis.length)]; const pa = topeRack(a), pb = topeRack(b);
       if (a !== b && pa && pb) { const mid = pa.clone().lerp(pb, 0.5); mid.y += 0.4 + pa.distanceTo(pb) * 0.15; const cv = new THREE.QuadraticBezierCurve3(pa, mid, pb); const h = new THREE.Mesh(new THREE.TubeGeometry(cv, 12, 0.02, 6), M.hilo.clone()); h.name = 'hilo_interaccion'; h.userData.t0 = t; hilosRack.add(h); activos.push(h); } }
     for (let i = activos.length - 1; i >= 0; i--) { const h = activos[i], a = t - h.userData.t0; h.material.opacity = a < 0.3 ? a / 0.3 : Math.max(0, 1 - (a - 0.3) / 1.2); if (a > 1.5) { hilosRack.remove(h); h.geometry.dispose(); h.material.dispose(); activos.splice(i, 1); } }
-    // 2) emerge el servicio en la nube (3–6 s): aparece como icono sólido, no como humo
-    const k = Math.min(Math.max((t - 3) / 3, 0), 1), resp = 0.5 + 0.5 * Math.sin(t * 0.8);
-    const easeK = k * k * (3 - 2 * k);
-    M.nube.opacity = 0.92 * easeK;
-    M.nube.emissiveIntensity = 0.25 + 0.2 * resp * easeK;
-    M.nubeBorde.opacity = 0.28 * easeK;
-    M.nubeBorde.emissiveIntensity = 0.4 + 0.25 * resp * easeK;
-    nube.scale.setScalar(0.15 + 0.85 * easeK);
-    nube.position.set(nubeC.x, nubeC.y + 0.25 * Math.sin(t * 0.7) * easeK, nubeC.z);
-    if (nube.userData.rotulo) {
-      nube.userData.rotulo.material.opacity = 0.95 * easeK;
-      nube.userData.rotulo.lookAt(stage._camera.position);
-    }
-    // 1b) haces desde los edificios hacia el punto de encuentro (0–3 s): las conexiones crecen desde la ciudad
-    const s = Math.min(t / 3, 1); hilosCiudad.children.forEach((h, i) => { const u = Math.min(Math.max((s * hilosCiudad.children.length - i * 0.5) / 1.5, 0), 1); h.scale.y = Math.max(u, 0.001); });
-    M.ventana.emissiveIntensity = calleOn ? 1.6 * Math.min(t / 1.5, 1) * (0.8 + 0.2 * resp) : 0;
-    estado.textContent = t < 3 ? 'Emergencia · las interacciones entre componentes aumentan' : t < 6 ? 'Emergencia · surge una propiedad nueva: el servicio en la nube' : 'Emergencia · ese servicio no existe en ningún componente por separado';
+    // 2) humo pequeño dentro de la sala (desde ~2.0 s)
+    const kIn = Math.min(Math.max((t - 2.0) / 2.8, 0), 1);
+    const easeIn = kIn * kIn * (3 - 2 * kIn);
+    M.humoEmerg.opacity = 0.55 * easeIn;
+    humoSala.children.forEach(s => {
+      const base = s.userData.base;
+      const bs = s.userData.baseScale;
+      const ph = s.userData.phase;
+      const grow = 0.35 + 0.7 * easeIn;
+      const rise = easeIn * (0.35 + 0.12 * Math.sin(t * 1.2 + ph));
+      s.scale.set(bs.x * grow, bs.y * grow, bs.z * grow);
+      s.position.set(
+        base.x + Math.sin(t * 1.1 + ph) * 0.05 * easeIn,
+        base.y + rise,
+        base.z + Math.cos(t * 0.9 + ph) * 0.04 * easeIn,
+      );
+    });
+    // 3) el humo se acumula y forma la nube sobre el edificio (desde ~4.2 s)
+    const kOut = Math.min(Math.max((t - 4.2) / 3.0, 0), 1);
+    const easeOut = kOut * kOut * (3 - 2 * kOut);
+    const resp = 0.5 + 0.5 * Math.sin(t * 0.8);
+    M.nube.opacity = 0.88 * easeOut;
+    M.nube.emissiveIntensity = 0.06 + 0.06 * resp * easeOut;
+    M.nubeBorde.opacity = 0.45 * easeOut;
+    M.nubeBorde.emissiveIntensity = 0.08 + 0.08 * resp * easeOut;
+    nube.scale.setScalar(0.12 + 0.95 * easeOut);
+    nube.position.set(nubeC.x, nubeC.y + 0.35 * Math.sin(t * 0.65) * easeOut, nubeC.z);
+    estado.textContent = t < 2.0
+      ? 'Emergencia · las interacciones entre componentes aumentan'
+      : t < 4.2
+        ? 'Emergencia · aparece humo dentro del Data Center: una condición nueva'
+        : 'Emergencia · el humo se acumula y forma una nube sobre el sistema';
     emAnim = requestAnimationFrame(step);
   });
 }
@@ -742,7 +757,7 @@ M.agua = mat('agua', 0x749dc4, 0.15, 0.1, { transparent: true, opacity: 0, depth
 const loma = new THREE.Mesh(new THREE.BoxGeometry(W + 9, LOMA_H, D + 6), M.loma); loma.name = 'loma'; loma.position.set(0, 0.2, 0); loma.scale.y = 0.001; loma.visible = false; E.add(loma);
 const agua = new THREE.Mesh(new THREE.BoxGeometry(70, 1, 50), M.agua); agua.name = 'inundacion'; agua.position.set(0, 0.2, 0); agua.scale.y = 0.001; agua.visible = false; E.add(agua);
 // Grupos que suben con el sitio (todo salvo el entorno)
-const sitio = ['frontera', 'entradas', 'procesos', 'salidas', 'retroalimentacion', 'resiliencia', 'pulsos_energia'].map(n => ROOT.getObjectByName(n)).filter(Boolean).concat([nube, hilosRack]);
+const sitio = ['frontera', 'entradas', 'procesos', 'salidas', 'retroalimentacion', 'resiliencia', 'pulsos_energia'].map(n => ROOT.getObjectByName(n)).filter(Boolean).concat([humoSala, hilosRack, nube]);
 // Vegetación del perímetro dentro de la loma (árboles/arbustos viven en entorno y cargan async)
 const LOMA_HX = (W + 6) / 2 + 1.2, LOMA_HZ = (D + 6) / 2 + 1.2;
 function vegetacionEnLoma() {
@@ -811,8 +826,8 @@ function posCielo(fase) { // fase 0..1: 0 = mediodía, 0.5 = medianoche
   const a = fase * Math.PI * 2; sol.position.set(Math.sin(a) * R_CIELO, Math.cos(a) * R_CIELO, -8); luna.position.set(-Math.sin(a) * R_CIELO, -Math.cos(a) * R_CIELO, -8);
 }
 // Objetos que se deterioran: mallas del sitio (salvo luces y animáticos)
-const deterioro = []; const noDet = /^(deco_|rayo|pulso|hilo|nube|ventana|termometro|generador_humo|calor_|loma|inundacion|lluvia|sensor_|luminaria_\d+_luz|luz_|placa_sitio|piso_tecnico|piso_baldosas|marca_|escombro|auto_|sitio_dr|eqf_|equifinalidad)/;
-sitio.forEach(g => g.traverse(o => { if (o.isMesh && !noDet.test(o.name) && o.material !== M.led && o.material !== M.ledGreen && o.material !== M.heat && o.material !== M.humo) deterioro.push(o); }));
+const deterioro = []; const noDet = /^(deco_|rayo|pulso|hilo|nube|ventana|termometro|generador_humo|humo_emergencia|calor_|loma|inundacion|lluvia|sensor_|luminaria_\d+_luz|luz_|placa_sitio|piso_tecnico|piso_baldosas|marca_|escombro|auto_|sitio_dr|eqf_|equifinalidad)/;
+sitio.forEach(g => g.traverse(o => { if (o.isMesh && !noDet.test(o.name) && o.material !== M.led && o.material !== M.ledGreen && o.material !== M.heat && o.material !== M.humo && o.material !== M.humoEmerg) deterioro.push(o); }));
 const detBase = new Map(); // o -> { mat, pos, rot, scale, seed }
 const escombros = new THREE.Group(); escombros.name = 'escombros'; escombros.visible = false; P.add(escombros);
 for (let i = 0; i < 60; i++) { const s = 0.3 + Math.random() * 0.9; const e = new THREE.Mesh(new THREE.BoxGeometry(s, s * 0.5, s * 0.7), M.escombro); e.name = `escombro_${i + 1}`; e.position.set(HX + (Math.random() - 0.5) * (HW + 4), y0 + s * 0.25, HZ + (Math.random() - 0.5) * (HD + 4)); e.rotation.y = Math.random() * Math.PI; escombros.add(e); }
@@ -1766,7 +1781,7 @@ function animarRecursividad() {
     if (!g) return;
     g.traverse(o => {
       if (!o.isMesh || !o.visible) return;
-      if (/^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|cielo|sol|luna)/.test(o.name)) return;
+      if (/^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|humo_emergencia|cielo|sol|luna)/.test(o.name)) return;
       meshesDC.push(o);
     });
   });
@@ -2136,7 +2151,7 @@ function estHighlight(objs, on, tint = 0xb5d9fd, em = 0xb497cf, ei = 1.05) {
   if (!on) { estClearHl(); return; }
   const set = new Set(objs);
   ROOT.traverse(o => {
-    if (!o.isMesh || !o.visible || /^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|cielo|sol|luna|eqf_|estructura_|est_)/.test(o.name)) return;
+    if (!o.isMesh || !o.visible || /^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|humo_emergencia|cielo|sol|luna|eqf_|estructura_|est_)/.test(o.name)) return;
     if (!estHlCache.has(o)) estHlCache.set(o, o.material);
     const base = estHlCache.get(o), m = base.clone();
     if (set.has(o)) { m.emissive = new THREE.Color(em); m.emissiveIntensity = ei; m.color = new THREE.Color(tint); }
@@ -2224,7 +2239,7 @@ function animarTotalidad() {
     const out = [];
     ROOT.traverse(o => {
       if (!o.isMesh || !o.visible) return;
-      if (/^(deco_rack_.*_puerta|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|cielo|sol|luna|eqf_|est_|ventana)/.test(o.name)) return;
+      if (/^(deco_rack_.*_puerta|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|humo_emergencia|cielo|sol|luna|eqf_|est_|ventana)/.test(o.name)) return;
       if (test(o.name)) out.push(o);
     });
     return out;
@@ -2599,7 +2614,7 @@ const CAPAS = {
   },
   emergencia: {
     label: 'Emergencia',
-    desc: 'Cuando servidores, red, energía y refrigeración interactúan, surge una propiedad nueva: el servicio en la nube. Solo existe en el sistema completo, no en un componente aislado.',
+    desc: 'De la interacción de los componentes surge una condición nueva: humo dentro del Data Center que se acumula y forma una nube sobre el sistema. No estaba al inicio.',
     emergencia: true, off: true,
   },
   sinergia: {
@@ -2664,7 +2679,7 @@ const hlNombre = new Map();
 function resaltarNombre(test, on) {
   if (!on) { hlNombre.forEach((m, o) => o.material = m); hlNombre.clear(); return; }
   ROOT.traverse(o => {
-    if (!o.isMesh || !o.visible || /^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|sol|luna|senal|escombro|ventana)/.test(o.name)) return;
+    if (!o.isMesh || !o.visible || /^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|humo_emergencia|sol|luna|senal|escombro|ventana)/.test(o.name)) return;
     if (!hlNombre.has(o)) hlNombre.set(o, o.material);
     const base = hlNombre.get(o), m = base.clone();
     if (test(o.name)) { m.color = new THREE.Color(0x94bce3); m.emissive = new THREE.Color(0x5980a6); m.emissiveIntensity = 0.9; }
@@ -2765,7 +2780,7 @@ const onPickUp = e => {
   const noPick = o => {
     for (let p = o; p && p !== ROOT; p = p.parent) if (!p.visible) return true;
     if (o.isPoints || o.isLight) return true;
-    if (/^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|cielo|sol|luna|eqf_|est_aire|est_dato|est_ener)/.test(o.name)) return true;
+    if (/^(deco_|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|humo_emergencia|cielo|sol|luna|eqf_|est_aire|est_dato|est_ener)/.test(o.name)) return true;
     if (o.material && o.material.transparent && o.material.opacity < 0.05) return true;
     return false;
   };

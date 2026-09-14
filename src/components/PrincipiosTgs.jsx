@@ -26,8 +26,8 @@ const ICONS = [
   <path key="6" d="M8 8h2v2H8zM14 8h2v2h-2zM8 14h2v2H8zM14 14h2v2h-2zM10 9h4M9 10v4M15 10v4M10 15h4" />,
   // Sinergia
   <path key="7" d="M8 12a4 4 0 1 0 0-.01M16 12a4 4 0 1 0 0-.01M10.5 10.5l3 3M13.5 10.5l-3 3" />,
-  // Emergencia
-  <path key="8" d="M12 19V9M8 13l4-4 4 4M7 5h10" />,
+  // Emergencia (humo que surge)
+  <path key="8" d="M9 20c0-2.2 1.2-3.2 2-4.2.8-1 1.2-1.8 1-3.3 1.4 1.2 2.6 2.4 2.6 4.5M7.5 20h9M10 12c-.4-1.2.2-2.2.8-3M14 11c.3-1.1-.1-2-.6-2.8" />,
   // Resiliencia
   <path key="9" d="M5 12a7 7 0 0 1 12.5-4M19 12a7 7 0 0 1-12.5 4M16 5h3v3M8 19H5v-3" />,
   // Adaptabilidad
