@@ -9,7 +9,7 @@
 
 .home {
   --home-ink: #f4f7ff;
-  --home-muted: color-mix(in srgb, #f4f7ff 58%, transparent);
+  --home-muted: color-mix(in srgb, #f4f4f4 85%, transparent);
   --home-cta: #fff;
   --home-cta-ink: #0a0a0a;
 
@@ -97,16 +97,14 @@
   transform: translateY(-1px);
 }
 
-.home__cta--ghost {
-  background: transparent;
-  color: var(--home-ink);
-  border: 1px solid color-mix(in srgb, #f4f7ff 35%, transparent);
-}
-
-.home__cta--ghost:hover {
-  background: color-mix(in srgb, #b497cf 16%, transparent);
-  border-color: color-mix(in srgb, #b497cf 55%, transparent);
-  color: var(--home-ink);
+.home__cta-specular {
+  font-family: var(--font-heading, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 24px;
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
