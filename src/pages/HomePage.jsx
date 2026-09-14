@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import PixelBlast from '../components/PixelBlast.jsx'
 import PrincipiosTgs from '../components/PrincipiosTgs.jsx'
+import SpecularButton from '../components/SpecularButton.jsx'
 import './HomePage.css'
 
 export default function HomePage() {
@@ -28,15 +29,36 @@ export default function HomePage() {
             Datacenter como <em>sistema</em>
           </h1>
           <p className="home__lead">
-            Una maqueta interactiva de 19 principios de la teoría general de sistemas.
+            Una maqueta interactiva de los 19 principios de la teoría general de sistemas.
           </p>
           <div className="home__actions">
             <Link className="home__cta" to="/escena">
               Abrir escena
             </Link>
-            <a className="home__cta home__cta--ghost" href="#principios">
+            <SpecularButton
+              className="home__cta-specular"
+              size="sm"
+              radius={999}
+              tint="#ffffff"
+              tintOpacity={0}
+              blur={0}
+              textColor="#f4f7ff"
+              lineColor="#ffffff"
+              baseColor="#b497cf"
+              intensity={1.5}
+              shineSize={10}
+              shineFade={40}
+              thickness={2}
+              speed={0.35}
+              followMouse
+              proximity={250}
+              autoAnimate={false}
+              onClick={() => {
+                document.getElementById('principios')?.scrollIntoView({ behavior: 'smooth' })
+              }}
+            >
               Ver principios
-            </a>
+            </SpecularButton>
           </div>
         </div>
       </main>
