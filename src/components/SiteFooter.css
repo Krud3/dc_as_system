@@ -1,0 +1,115 @@
+.site-footer {
+  --sf-bg: #0a0a0a;
+  --sf-ink: #ffffff;
+  --sf-muted: #9a9a9a;
+  --sf-line: #2a2a2a;
+
+  background: var(--sf-bg);
+  color: var(--sf-ink);
+}
+
+.site-footer__inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: clamp(56px, 8vw, 96px) clamp(20px, 4vw, 48px) clamp(28px, 4vw, 48px);
+  overflow: visible;
+}
+
+.site-footer__cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(32px, 5vw, 72px);
+  margin-bottom: clamp(48px, 8vw, 88px);
+}
+
+.site-footer__heading {
+  margin: 0 0 16px;
+  font-family: var(--font-heading, 'Google Sans Flex', system-ui, sans-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--sf-ink);
+}
+
+.site-footer__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--sf-muted);
+}
+
+.site-footer__code {
+  color: color-mix(in srgb, var(--sf-muted) 75%, transparent);
+}
+
+.site-footer__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 20px);
+}
+
+.site-footer__brand {
+  margin: 0;
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding-inline: clamp(6px, 1vw, 16px);
+  font-family: var(--font-heading, 'Google Sans Flex', system-ui, sans-serif);
+  font-size: clamp(4.75rem, 19.2vw, 22rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.72;
+  color: var(--sf-ink);
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-align: center;
+  user-select: none;
+}
+
+.site-footer__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.site-footer__top {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: none;
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.85rem;
+  color: var(--sf-ink);
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.site-footer__top:hover {
+  color: var(--sf-muted);
+}
+
+@media (max-width: 720px) {
+  .site-footer__cols {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    margin-bottom: 48px;
+  }
+
+  .site-footer__brand {
+    font-size: clamp(3.75rem, 22vw, 8rem);
+    letter-spacing: -0.06em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-footer__top {
+    transition: none;
+  }
+}

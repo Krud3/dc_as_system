@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import PixelBlast from '../components/PixelBlast.jsx'
 import PrincipiosTgs from '../components/PrincipiosTgs.jsx'
+import SiteFooter from '../components/SiteFooter.jsx'
 import SpecularButton from '../components/SpecularButton.jsx'
 import './HomePage.css'
 
@@ -66,6 +67,8 @@ export default function HomePage() {
       <div id="principios">
         <PrincipiosTgs />
       </div>
+
+      <SiteFooter />
     </div>
   )
 }
