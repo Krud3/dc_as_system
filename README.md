@@ -9,3 +9,4 @@ npm run dev
 
 - `/` — inicio
 - `/escena` — maqueta 3D + panel TGS
+hey
