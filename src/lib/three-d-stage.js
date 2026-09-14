@@ -164,24 +164,6 @@
       this._err = document.createElement('div');
       this._err.className = 'err';
       root.appendChild(this._err);
-      const note = document.createElement('div');
-      note.className = 'note';
-      note.textContent = 'Drag to orbit · scroll to zoom · right-drag to pan';
-      root.appendChild(note);
-      this._toolbar = document.createElement('div');
-      this._toolbar.className = 'toolbar';
-      this._objBtn = document.createElement('button');
-      this._objBtn.type = 'button';
-      this._objBtn.textContent = 'Download OBJ + MTL';
-      this._objBtn.addEventListener('click', () => this._runExport('obj'));
-      this._glbBtn = document.createElement('button');
-      this._glbBtn.type = 'button';
-      this._glbBtn.textContent = 'Download GLB';
-      this._glbBtn.addEventListener('click', () => this._runExport('glb'));
-      this._toolbar.appendChild(this._objBtn);
-      this._toolbar.appendChild(this._glbBtn);
-      root.appendChild(this._toolbar);
-      this._setButtonsEnabled(false);
       /** Resolves with { THREE } once the scene is live — build the model
        *  in `await stage.ready` so nothing races the library load. */
       this.ready = new Promise((resolve, reject) => {
@@ -387,8 +369,8 @@
     }
 
     _setButtonsEnabled(on) {
-      this._objBtn.disabled = !on;
-      this._glbBtn.disabled = !on;
+      if (this._objBtn) this._objBtn.disabled = !on;
+      if (this._glbBtn) this._glbBtn.disabled = !on;
     }
 
     /** Every mesh and material needs a unique name for o/usemtl lines —

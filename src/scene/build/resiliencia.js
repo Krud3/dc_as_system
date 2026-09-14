@@ -47,16 +47,16 @@ line(S, 'acometida_electrica_redundante_2', M.ink, [TX + 2.6, y0 + 6.4, TZ + 10.
   decoBox(S, `ext_cartel_txt_${i}`, M.paper, 0.24, 0.1, 0.012, x, fy + 1.7, z - 0.38);
 });
 
-M.lampara = mat('lampara', 0xf0e8f8, 0.32, 0, { emissive: 0xb497cf, emissiveIntensity: 1.7 });
+M.lampara = mat('lampara', 0xf2efe8, 0.32, 0, { emissive: 0xe8d9b8, emissiveIntensity: 1.7 });
 const lamparas = [];
 [[-17, -11], [-17, 11], [17, -11], [17, 11], [0, 11.6]].forEach(([x, z], i) => {
   box(F, `luminaria_${i + 1}_poste`, M.deepSteel, 0.12, 4.4, 0.12, x, y0 + 2.2, z);
   box(F, `luminaria_${i + 1}_lampara`, M.lampara, 0.56, 0.12, 0.3, x, y0 + 4.42, z);
   decoBox(F, `luminaria_cap_${i}`, M.deepSteel, 0.64, 0.07, 0.36, x, y0 + 4.52, z);
   decoBox(F, `luminaria_base_${i}`, M.concrete, 0.5, 0.18, 0.5, x, y0 + 0.09, z, 0, true);
-  const pl = new THREE.PointLight(0xb497cf, 0, 14, 1.6); pl.position.set(x, y0 + 4.2, z); pl.name = `luminaria_${i + 1}_luz`; F.add(pl); lamparas.push(pl);
+  const pl = new THREE.PointLight(0xe8d9b8, 0, 14, 1.6); pl.position.set(x, y0 + 4.2, z); pl.name = `luminaria_${i + 1}_luz`; F.add(pl); lamparas.push(pl);
 });
-const luzSala = new THREE.PointLight(0xb8a8d4, 0, 22, 1.4); luzSala.position.set(HX, y0 + 3.1, HZ); luzSala.name = 'luz_sala'; P.add(luzSala);
-const luzGen = new THREE.PointLight(0xb497cf, 0, 8, 1.6); luzGen.position.set(GX, y0 + 1.8, GZ); luzGen.name = 'luz_generador'; S.add(luzGen);
+const luzSala = new THREE.PointLight(0xe8e4dc, 0, 22, 1.4); luzSala.position.set(HX, y0 + 3.1, HZ); luzSala.name = 'luz_sala'; P.add(luzSala);
+const luzGen = new THREE.PointLight(0xe8d9b8, 0, 8, 1.6); luzGen.position.set(GX, y0 + 1.8, GZ); luzGen.name = 'luz_generador'; S.add(luzGen);
   Object.assign(ctx, { S, humo, lamparas, luzSala, luzGen });
 }

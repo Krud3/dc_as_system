@@ -1,5 +1,111 @@
 /** ENTORNO: terreno, rayo, faroles, torres, ciudad, plantings. */
 
+/** Detalle arquitectónico de un edificio urbano (hijas del mesh → crecen con Complejidad). */
+function decorateCityBuilding(THREE, M, b, tag, seed = 0) {
+  const { width: w, height: h, depth: d } = b.geometry.parameters;
+  const add = (name, matRef, gw, gh, gd, lx, ly, lz, cast = true) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(gw, gh, gd), matRef);
+    m.name = `deco_${tag}_${name}`;
+    m.position.set(lx, ly, lz);
+    if (cast) m.castShadow = true;
+    b.add(m);
+    return m;
+  };
+  const litMat = (f, c) => {
+    const r = (seed * 17 + f * 7 + c * 13) % 10;
+    if (r < 2) return M.winDim;
+    if (r < 4) return M.winWarm;
+    if (r < 7) return M.screenBlue;
+    return M.screenCyan;
+  };
+
+  // Zócalo / plinto
+  add('plinto', M.concrete, w + 0.38, 0.32, d + 0.38, 0, -h / 2 + 0.16, 0);
+  // Franja de acento a media altura (rompe la caja)
+  if (h > 5) {
+    add('banda', M.cabinetWhite, w + 0.06, 0.22, d + 0.06, 0, -h / 2 + h * 0.42, 0, false);
+  }
+  // Pilares esquina (relieve de fachada)
+  const pw = 0.18, pd = 0.18;
+  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([sx, sz], i) => {
+    add(`pilar_${i}`, M.wallTop, pw, h - 0.35, pd,
+      sx * (w / 2 - pw / 2 - 0.02), 0.05, sz * (d / 2 - pd / 2 - 0.02), false);
+  });
+  // Cornisa + techo con voladizo + pretil
+  add('cornisa', M.cabinetWhite, w + 0.28, 0.12, d + 0.28, 0, h / 2 - 0.18, 0);
+  add('techo', M.roofTile, w + 0.5, 0.16, d + 0.5, 0, h / 2 + 0.08, 0);
+  const rim = 0.1, rh = 0.28;
+  add('pretil_n', M.wallMuro, w + 0.4, rh, rim, 0, h / 2 + 0.22, -(d / 2 + 0.12));
+  add('pretil_s', M.wallMuro, w + 0.4, rh, rim, 0, h / 2 + 0.22, d / 2 + 0.12);
+  add('pretil_e', M.wallMuro, rim, rh, d + 0.2, w / 2 + 0.12, h / 2 + 0.22, 0);
+  add('pretil_o', M.wallMuro, rim, rh, d + 0.2, -(w / 2 + 0.12), h / 2 + 0.22, 0);
+  // Equipo de azotea (HVAC + antena en edificios altos)
+  const hx = (seed % 3 - 1) * w * 0.18;
+  const hz = ((seed + 1) % 3 - 1) * d * 0.15;
+  add('hvac', M.grey, Math.min(1.1, w * 0.28), 0.55, Math.min(0.9, d * 0.28), hx, h / 2 + 0.45, hz);
+  add('hvac_rejilla', M.grille, Math.min(0.95, w * 0.24), 0.35, 0.04, hx, h / 2 + 0.48, hz + Math.min(0.45, d * 0.14) + 0.02, false);
+  if (h >= 8) {
+    add('antena_mastil', M.deepSteel, 0.06, 1.4, 0.06, -hx * 0.7, h / 2 + 0.9, -hz * 0.6, false);
+    add('antena_plato', M.steelLight, 0.35, 0.06, 0.35, -hx * 0.7, h / 2 + 1.55, -hz * 0.6, false);
+  }
+
+  // Ventanas en las 4 fachadas (maqueta legible desde cualquier ángulo)
+  const floorH = 1.25;
+  const floors = Math.max(2, Math.floor((h - 1.0) / floorH));
+  const winW = 0.48, winH = 0.58;
+  const placeWins = (face, cols) => {
+    const span = face === 's' || face === 'n' ? w : d;
+    const margin = 0.55;
+    const usable = Math.max(span - margin * 2, 0.01);
+    const gap = cols > 1 ? usable / (cols - 1) : 0;
+    const dens = face === 's' || face === 'e' ? 1 : 0.65; // N/O un poco más abiertas
+    for (let f = 0; f < floors; f++) {
+      if (face === 's' && f > 0) {
+        add(`piso_${f}`, M.wallDark, w + 0.04, 0.06, 0.08, 0, -h / 2 + 0.55 + f * floorH - 0.35, d / 2 + 0.02, false);
+      }
+      for (let c = 0; c < cols; c++) {
+        if (dens < 1 && (f + c + seed) % 3 === 0) continue;
+        const along = -span / 2 + margin + c * gap;
+        const y = -h / 2 + 0.85 + f * floorH;
+        const matPane = litMat(f, c + (face === 'e' ? 20 : face === 'n' ? 40 : face === 'o' ? 60 : 0));
+        if (face === 's') {
+          add(`marco_s_${f}_${c}`, M.ink, winW + 0.1, winH + 0.1, 0.035, along, y, d / 2 + 0.018, false);
+          add(`win_s_${f}_${c}`, matPane, winW, winH, 0.045, along, y, d / 2 + 0.042, false);
+        } else if (face === 'n') {
+          add(`marco_n_${f}_${c}`, M.ink, winW + 0.1, winH + 0.1, 0.035, along, y, -(d / 2 + 0.018), false);
+          add(`win_n_${f}_${c}`, matPane, winW, winH, 0.045, along, y, -(d / 2 + 0.042), false);
+        } else if (face === 'e') {
+          add(`marco_e_${f}_${c}`, M.ink, 0.035, winH + 0.1, winW + 0.1, w / 2 + 0.018, y, along, false);
+          add(`win_e_${f}_${c}`, matPane, 0.045, winH, winW, w / 2 + 0.042, y, along, false);
+        } else {
+          add(`marco_o_${f}_${c}`, M.ink, 0.035, winH + 0.1, winW + 0.1, -(w / 2 + 0.018), y, along, false);
+          add(`win_o_${f}_${c}`, matPane, 0.045, winH, winW, -(w / 2 + 0.042), y, along, false);
+        }
+      }
+    }
+  };
+  const colsZ = Math.max(2, Math.floor(w / 1.05));
+  const colsX = Math.max(2, Math.floor(d / 1.15));
+  placeWins('s', colsZ);
+  placeWins('n', colsZ);
+  placeWins('e', colsX);
+  placeWins('o', colsX);
+
+  // Acceso planta baja (puerta + marquesina)
+  const doorW = Math.min(0.9, w * 0.22);
+  add('puerta', M.glassDark, doorW, 1.15, 0.06, 0, -h / 2 + 0.75, d / 2 + 0.03, false);
+  add('puerta_marco', M.deepSteel, doorW + 0.14, 1.28, 0.05, 0, -h / 2 + 0.78, d / 2 + 0.015, false);
+  add('marquesina', M.steel, doorW + 0.5, 0.06, 0.45, 0, -h / 2 + 1.42, d / 2 + 0.28, false);
+  // Escalon de entrada
+  add('escalon', M.concrete, doorW + 0.35, 0.1, 0.35, 0, -h / 2 + 0.05, d / 2 + 0.22, false);
+
+  // Volumen lateral (setback) en edificios anchos: rompe la silueta
+  if (w >= 5 && h >= 5) {
+    const sw = w * 0.32, sh = h * 0.55, sd = 0.35;
+    add('setback', M.facadeDeep, sw, sh, sd, -w / 2 + sw / 2 + 0.05, -h / 2 + sh / 2 + 0.4, d / 2 + sd / 2 - 0.02, false);
+  }
+}
+
 export function buildEntorno(ctx) {
   const {
     THREE, SUB, M, mat, box, decoBox, decoCyl, line, placePlant,
@@ -15,7 +121,7 @@ const rayo = new THREE.Group(); rayo.name = 'rayo'; rayo.visible = false; E.add(
 box(E, 'via_publica', M.asphalt, 70, 0.03, 3.6, 0, 0.215, 19.6);
 // línea central segmentada (deco, no interfiere)
 for (let x = -34; x < 34; x += 2.4) decoBox(E, `via_linea_${x}`, M.paper, 1.2, 0.012, 0.12, x, 0.235, 19.6);
-M.farol = mat('farol', 0xf0e8f8, 0.32, 0, { emissive: 0xb497cf, emissiveIntensity: 1.55 });
+M.farol = mat('farol', 0xf2efe8, 0.32, 0, { emissive: 0xe8d9b8, emissiveIntensity: 1.55 });
 const faroles = [];
 [-30, -20, -10, 0, 10, 20, 30].forEach((x, i) => {
   box(E, `farol_${i + 1}_poste`, M.deepSteel, 0.12, 4.2, 0.12, x, 0.2 + 2.1, 21.8);
@@ -24,7 +130,7 @@ const faroles = [];
   decoBox(E, `farol_cap_${i + 1}`, M.deepSteel, 0.54, 0.06, 0.34, x, 0.2 + 4.18, 20.85);
   // Una PointLight cada dos faroles: el resto se ve por emisión del mesh.
   if (i % 2 === 0) {
-    const pl = new THREE.PointLight(0xb497cf, 0, 14, 1.6); pl.position.set(x, 0.2 + 3.85, 20.8); pl.name = `farol_${i + 1}_luz`; E.add(pl); faroles.push(pl);
+    const pl = new THREE.PointLight(0xe8d9b8, 0, 14, 1.6); pl.position.set(x, 0.2 + 3.85, 20.8); pl.name = `farol_${i + 1}_luz`; E.add(pl); faroles.push(pl);
   }
 });
 const tower = (x, z, n) => {
@@ -37,31 +143,38 @@ const tower = (x, z, n) => {
 };
 tower(30, -14, 'torre_at_1'); tower(30, 2, 'torre_at_2');
 line(E, 'linea_at', M.ink, [30, 8.7, -14], [30, 8.7, 2]);
-box(E, 'ciudad_1', M.wallAccent, 5, 7, 5, -28, 3.7, -16);
-box(E, 'ciudad_2', M.cabinetWhite, 4, 10, 4, -22, 5.2, -19);
-box(E, 'ciudad_3', M.wallAccent, 6, 5, 4, -30, 2.7, -8);
-// ventanas deco en edificios base (ilustración como la referencia)
-[['ciudad_1', -28, 3.7, -16, 5, 7, 5], ['ciudad_2', -22, 5.2, -19, 4, 10, 4], ['ciudad_3', -30, 2.7, -8, 6, 5, 4]].forEach(([tag, bx, by, bz, w, h, d], bi) => {
-  for (let f = 0; f < Math.floor(h / 1.3); f++) for (let cc = 0; cc < Math.floor(w / 1.1); cc++)
-    decoBox(E, `ciudad_win_${bi}_${f}_${cc}`, M.screenBlue, 0.55, 0.6, 0.04, bx - w / 2 + 0.7 + cc * 1.1, 0.2 + 1.1 + f * 1.3, bz + d / 2 + 0.02);
-  decoBox(E, `ciudad_roof_${bi}`, M.wallMuro, w + 0.3, 0.18, d + 0.3, bx, 0.2 + h + 0.09, bz, 0, true);
+
+// Ciudad base (siempre visible) + edificios de Complejidad (crecen en animación)
+const facadeMats = [M.facadeCool, M.facadeWarm, M.wallAccent, M.facadeDeep, M.cabinetWhite];
+const ciudadBase = [
+  ['ciudad_1', -28, 7, 5, -16, 5, 0],
+  ['ciudad_2', -22, 10, 4, -19, 4, 1],
+  ['ciudad_3', -30, 5, 6, -8, 4, 2],
+];
+ciudadBase.forEach(([name, x, h, w, z, d, seed], i) => {
+  const body = box(E, name, facadeMats[i % facadeMats.length], w, h, d, x, 0.2 + h / 2, z);
+  body.userData.h = h;
+  decorateCityBuilding(THREE, M, body, name, seed);
 });
-const ciudadNueva = [[-33, 8, 4, -14, 4], [-25, 12, 4, -12, 4], [-32, 6, 5, -2, 5], [-20, 9, 3.5, -22, 3.5], [-27, 14, 4, -22, 4], [-33, 9, 4, -20, 4], [-36, 6, 4, -8, 4], [-26, 16, 3.5, -4, 3.5]]
-  .map(([x, h, w, z, d], i) => { const b = box(E, `ciudad_nueva_${i + 1}`, M.cabinetWhite, w, h, d, x, 0.2 + h / 2, z); b.visible = false; b.userData.h = h; return b; });
-// Fachada con luces para los edificios extra (hijas del edificio: crecen con él
-// durante la animación y se ven iluminadas como el resto de la ciudad)
-ciudadNueva.forEach((b, i) => {
-  const p = b.geometry.parameters, w = p.width, h = p.height, d = p.depth;
-  const cols = Math.max(2, Math.floor(w / 1.1)), floors = Math.max(2, Math.floor(h / 1.3));
-  for (let f = 0; f < floors; f++) for (let c = 0; c < cols; c++) {
-    const win = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.6, 0.04), M.screenBlue);
-    win.name = `deco_ciudad_nueva_win_${i}_${f}_${c}`;
-    win.position.set(-w / 2 + 0.7 + c * ((w - 1.1) / Math.max(cols - 1, 1)), -h / 2 + 1.1 + f * 1.3, d / 2 + 0.02);
-    b.add(win);
-  }
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.18, d + 0.3), M.wallMuro);
-  roof.name = `deco_ciudad_nueva_roof_${i}`; roof.position.set(0, h / 2 + 0.09, 0); roof.castShadow = true; b.add(roof);
+
+const ciudadSpecs = [
+  [-33, 8, 4, -14, 4, 3],
+  [-25, 12, 4, -12, 4, 4],
+  [-32, 6, 5, -2, 5, 5],
+  [-20, 9, 3.5, -22, 3.5, 6],
+  [-27, 14, 4, -22, 4, 0],
+  [-33, 9, 4, -20, 4, 1],
+  [-36, 6, 4, -8, 4, 2],
+  [-26, 16, 3.5, -4, 3.5, 7],
+];
+const ciudadNueva = ciudadSpecs.map(([x, h, w, z, d, seed], i) => {
+  const b = box(E, `ciudad_nueva_${i + 1}`, facadeMats[(i + 2) % facadeMats.length], w, h, d, x, 0.2 + h / 2, z);
+  b.visible = false;
+  b.userData.h = h;
+  decorateCityBuilding(THREE, M, b, `ciudad_nueva_${i + 1}`, seed);
+  return b;
 });
+
 // Paisajismo ligero: pocos grupos que enmarcan el sitio (sin saturar el perímetro)
 // [x, z, modelo, altura_m, rotY]
 const plantings = [
@@ -82,7 +195,6 @@ const plantings = [
   [-24.8, 15.8, 'tree1', 3.2, -0.3],
   [-25.5, 13.2, 'bush1', 0.9, 0.5],
   // Noroeste — un árbol junto a edificios
-  [-24.0, -4.5, 'tree5', 3.5, 0.55],
   [-22.8, -3.2, 'bush1', 0.8, -1.0],
   // Este — lejos de las torres (x≈30), un grupo limpio
   [24.5, 8.0, 'tree3', 3.15, -0.6],

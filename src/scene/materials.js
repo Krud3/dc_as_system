@@ -8,7 +8,7 @@ const mat = (name, color, roughness = 0.7, metalness = 0.1, extra = {}) =>
 const M = {
   paper: mat('paper', 0xf5f5f8, 0.62, 0.02),
   cabinetWhite: mat('cabinet_white', 0xeef1f5, 0.52, 0.04),
-  ground: mat('ground', 0xb6c9da, 0.97, 0),
+  ground: mat('ground', 0x5f6874, 0.97, 0),
   concrete: mat('concrete', 0xc2c7ce, 0.86, 0.02),
   wallMuro: mat('wall_muro', 0xb4bcc6, 0.8, 0.02),
   wallTop: mat('wall_top', 0xe6ebf0, 0.68, 0.02),
@@ -50,13 +50,20 @@ const M = {
   pduBlue: mat('pdu_blue', 0x5980a6, 0.42, 0.1),
   orange: mat('orange', 0xd85a28, 0.48, 0.05),
   roofOrange: mat('roof_orange', 0xd85a28, 0.55, 0.03),
-  asphalt: mat('asphalt', 0x3a3e45, 0.92, 0),
+  asphalt: mat('asphalt', 0x2c3036, 0.92, 0),
   parking: mat('parking', 0x6d5545, 0.88, 0),
   grassGreen: mat('grass_green', 0x5fa870, 0.85, 0),
   leafGreen: mat('leaf_green', 0x458a56, 0.8, 0),
   trunk: mat('trunk', 0x6d5545, 0.85, 0),
   // Ventanas ciudad: cyan → lilac-azul (cohesión con home en noche)
-  screenBlue: mat('screen_blue', 0xb8c4e8, 0.28, 0, { emissive: 0x9a88c4, emissiveIntensity: 1.15 }),
+  screenBlue: mat('screen_blue', 0xb8c4e8, 0.26, 0, { emissive: 0x9a88c4, emissiveIntensity: 1.45 }),
+  // Fachadas ciudad (variedad en la maqueta urbana)
+  facadeCool: mat('facade_cool', 0xa8b2be, 0.78, 0.02),
+  facadeWarm: mat('facade_warm', 0xc5cbd4, 0.74, 0.02),
+  facadeDeep: mat('facade_deep', 0x8e98a4, 0.76, 0.03),
+  winWarm: mat('win_warm', 0xe8d9b8, 0.28, 0, { emissive: 0xd4a86a, emissiveIntensity: 1.35 }),
+  winDim: mat('win_dim', 0x1c2430, 0.2, 0.2),
+  roofTile: mat('roof_tile', 0x5a626c, 0.82, 0.04),
   skin: mat('skin', 0xd4a686, 0.65, 0),
   shirt: mat('shirt', 0x283440, 0.7, 0),
   shirtBlue: mat('shirt_blue', 0x3a6a9a, 0.66, 0),
@@ -87,14 +94,14 @@ function canvasTex(w, h, draw, rx = 1, ry = 1) {
   t.repeat.set(rx, ry); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 { const tex = canvasTex(256, 256, (c) => {
-    c.fillStyle = '#3e434a'; c.fillRect(0, 0, 256, 256);
-    c.fillStyle = '#363b42'; for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if ((x + y) % 2) c.fillRect(x * 64, y * 64, 64, 64);
-    c.strokeStyle = '#5a616a'; c.lineWidth = 2.5;
+    c.fillStyle = '#2a2f36'; c.fillRect(0, 0, 256, 256);
+    c.fillStyle = '#232830'; for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if ((x + y) % 2) c.fillRect(x * 64, y * 64, 64, 64);
+    c.strokeStyle = '#4a525c'; c.lineWidth = 2.5;
     for (let i = 0; i <= 4; i++) { c.beginPath(); c.moveTo(i * 64, 0); c.lineTo(i * 64, 256); c.stroke(); c.beginPath(); c.moveTo(0, i * 64); c.lineTo(256, i * 64); c.stroke(); }
   }, 10, 7);
   M.floorDark = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0.03 }), { name: 'floor_dark' }); }
 { const tex = canvasTex(128, 128, (c) => {
-    c.fillStyle = '#d4dae2'; c.fillRect(0, 0, 128, 128); c.strokeStyle = '#b8c0ca'; c.lineWidth = 1.5;
+    c.fillStyle = '#c5ccd6'; c.fillRect(0, 0, 128, 128); c.strokeStyle = '#9aa3ae'; c.lineWidth = 1.5;
     for (let i = 0; i <= 4; i++) { c.beginPath(); c.moveTo(i * 32, 0); c.lineTo(i * 32, 128); c.stroke(); c.beginPath(); c.moveTo(0, i * 32); c.lineTo(128, i * 32); c.stroke(); }
   }, 28, 18);
   M.tile = Object.assign(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, metalness: 0 }), { name: 'tile' }); }

@@ -18,24 +18,43 @@ export default function DatacenterStage() {
 
     const stage = document.createElement('three-d-stage')
     stage.setAttribute('name', 'datacenter')
-    stage.setAttribute('background', '#0a0a0a')
+    stage.setAttribute('background', '#111114')
     stage.setAttribute('autorotate', '')
 
     const panel = document.createElement('aside')
     panel.id = 'panel'
     panel.innerHTML = `
-      <h1>Datacenter como sistema</h1>
-      <p>19 principios TGS · clic en un objeto para identificarlo</p>
+      <header class="panel__header">
+        <h1>Datacenter como <em>sistema</em></h1>
+        <p>19 principios TGS · clic en un objeto para identificarlo</p>
+      </header>
       <div class="modo" role="group" aria-label="Iluminación">
-        <button type="button" id="mDia" aria-pressed="false">Día</button>
-        <button type="button" id="mNoche" aria-pressed="true">Noche</button>
+        <button type="button" id="mDia" aria-pressed="false"><span>Día</span></button>
+        <button type="button" id="mNoche" aria-pressed="true"><span>Noche</span></button>
       </div>
       <div id="layers"></div>
-      <div id="estado"></div>
       <div id="sel">—</div>
     `
 
-    host.append(stage, panel)
+    const guide = document.createElement('aside')
+    guide.id = 'anim-guide'
+    guide.className = 'anim-guide'
+    guide.hidden = true
+    guide.setAttribute('aria-live', 'polite')
+    guide.innerHTML = `
+      <button type="button" class="anim-guide__close" id="anim-guide-close" aria-label="Cerrar guía">×</button>
+      <div class="anim-guide__meta">
+        <span class="anim-guide__num" id="anim-guide-num">00</span>
+        <h2 class="anim-guide__name" id="anim-guide-name"></h2>
+      </div>
+      <p class="anim-guide__status" id="estado"></p>
+      <div class="anim-guide__evidencia-wrap">
+        <span class="anim-guide__eyebrow">Cómo se evidencia</span>
+        <p class="anim-guide__evidencia" id="anim-guide-evidencia"></p>
+      </div>
+    `
+
+    host.append(stage, panel, guide)
 
     ;(async () => {
       try {
@@ -62,6 +81,7 @@ export default function DatacenterStage() {
       }
       stage.remove()
       panel.remove()
+      guide.remove()
       host.replaceChildren()
     }
   }, [])

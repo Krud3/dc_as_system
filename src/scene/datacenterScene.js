@@ -13,6 +13,7 @@ import { buildResiliencia } from './build/resiliencia.js';
 import { buildProps } from './build/props.js';
 import { createScriptedCamera } from './cameraScripted.js';
 import { easeInOutCubic } from './ease.js';
+import { PRINCIPIOS_TGS } from '../data/principiosTgs.js';
 
 /**
  * @param {HTMLElement} stage — instancia de <three-d-stage> ya en el DOM
@@ -63,14 +64,39 @@ M.lineaOff = mat('linea_caida', 0x98989b, 0.9, 0);
 const ledBase = { color: M.led.color.clone(), em: M.led.emissive.clone(), ei: M.led.emissiveIntensity };
 const ledGreenBase = { ei: M.ledGreen.emissiveIntensity };
 let anim = null;
+const guideEl = document.getElementById('anim-guide');
+const guideNum = document.getElementById('anim-guide-num');
+const guideName = document.getElementById('anim-guide-name');
+const guideEvid = document.getElementById('anim-guide-evidencia');
 const estado = document.getElementById('estado');
+const padN = n => String(n).padStart(2, '0');
+/** Abre la tarjeta de guía con datos de principiosTgs + estado vivo de la animación. */
+function openGuide(n) {
+  const p = PRINCIPIOS_TGS.find(x => x.n === n);
+  if (!guideEl || !p) return;
+  if (guideNum) guideNum.textContent = padN(p.n);
+  if (guideName) guideName.textContent = p.nombre;
+  if (guideEvid) guideEvid.textContent = p.ejemplo;
+  if (estado) estado.textContent = p.aplicacion;
+  guideEl.hidden = false;
+  guideEl.classList.add('is-on');
+}
+function closeGuide() {
+  if (estado) estado.textContent = '';
+  if (guideEl) {
+    guideEl.classList.remove('is-on');
+    guideEl.hidden = true;
+  }
+}
+const guideCloseBtn = document.getElementById('anim-guide-close');
+if (guideCloseBtn) guideCloseBtn.addEventListener('click', ev => { ev.preventDefault(); closeGuide(); });
 const setLeds = (on, k = 1) => { M.led.emissiveIntensity = on ? ledBase.ei * k : 0; M.led.color.copy(ledBase.color).multiplyScalar(on ? 1 : 0.35); M.ledGreen.emissiveIntensity = on ? ledGreenBase.ei * k : 0; M.lampara.emissiveIntensity = on ? 1.8 * k : 0; lamparas.forEach(l => l.intensity = on ? lampBase * k : 0); luzSala.intensity = on ? salaBase * k : 0; };
 let calleOn = true;
 const setCalle = on => { calleOn = on; M.farol.emissiveIntensity = on ? 1.6 : 0; faroles.forEach(l => l.intensity = on ? farolBase : 0); if (!on) M.ventana.emissiveIntensity = 0; };
-const reset = () => { setLeds(true); setCalle(true); rayo.visible = false; M.rayo.opacity = 0; energia.linea.material = M.ink; energia.acom.forEach(l => l.material = M.ink); energia.gen.forEach(l => l.material = M.ink); humo.visible = false; M.humo.opacity = 0; M.genLed.emissive.setHex(0); luzGen.intensity = 0; estado.textContent = ''; };
+const reset = () => { setLeds(true); setCalle(true); rayo.visible = false; M.rayo.opacity = 0; energia.linea.material = M.ink; energia.acom.forEach(l => l.material = M.ink); energia.gen.forEach(l => l.material = M.ink); humo.visible = false; M.humo.opacity = 0; M.genLed.emissive.setHex(0); luzGen.intensity = 0; };
 const rnd = () => Math.random();
 function simularRayo(modo = 'entorno') {
-  if (anim) return; reset(); const t0 = performance.now(); btnRayo.disabled = true; btnRes.disabled = true;
+  if (anim) return; reset(); openGuide(modo === 'resiliencia' ? 9 : 2); const t0 = performance.now(); btnRayo.disabled = true; btnRes.disabled = true;
   const res = modo === 'resiliencia';
   anim = requestAnimationFrame(function step(now) {
     const t = (now - t0) / 1000;
@@ -129,10 +155,12 @@ const eqfRotulo = (() => {
 })();
 const eqfPulsos = new THREE.Group(); eqfPulsos.name = 'eqf_pulsos'; eqfFx.add(eqfPulsos);
 function setEqfBtns(on) {
-  [btnEqfA, btnEqfB, btnEqfC].forEach(b => { if (b) b.disabled = !on; });
+  const selEqf = document.getElementById('selEqf');
+  if (selEqf) selEqf.disabled = !on;
 }
 function animarEquifinalidad(ruta) {
   if (eqfAnim || jerAnim || cpxAnim2) return;
+  openGuide(4);
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
   const wasDamp = lockScriptedCam(ctl);
@@ -231,7 +259,6 @@ function animarEquifinalidad(ruta) {
       if (puertaEqfB) puertaEqfB.visible = puertaVisB;
       setLeds(true);
       unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
-      estado.textContent = '';
       setEqfBtns(true);
       eqfAnim = null;
     };
@@ -337,7 +364,6 @@ function animarEquifinalidad(ruta) {
     if (puertaEqfB) puertaEqfB.visible = puertaVisB;
     setLeds(true);
     unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
-    estado.textContent = '';
     setEqfBtns(true);
     eqfAnim = null;
   };
@@ -438,6 +464,7 @@ function parpadear(objs, on, fase) {
 const meshesDe = g => { const a = []; g.traverse(o => { if (o.isMesh) a.push(o); }); return a; };
 function animarJerarquia() {
   if (jerAnim || eqfAnim) return;
+  openGuide(5);
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
   const cbJer = layers.querySelector('input[data-k="jerarquia"]'), jerOn = !!(cbJer && cbJer.checked);
@@ -481,7 +508,6 @@ function animarJerarquia() {
     if (jerOn) resaltar(CAPAS.jerarquia.resaltar, true);
     if (puertaRack6) puertaRack6.visible = puertaVis0;
     unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
-    estado.textContent = '';
     if (btnJer) btnJer.disabled = false;
     jerAnim = null;
   };
@@ -531,7 +557,7 @@ function animarFlujo(on) {
     if (cpxAnim) cancelAnimationFrame(cpxAnim); cpxAnim = null;
     pulsos.visible = false; pulsos.clear(); cpxBolas = [];
     cablesCpx.forEach(o => { if (cableBase.has(o)) o.material = cableBase.get(o); o.scale.set(1, 1, 1); }); cableBase.clear();
-    M.heat.opacity = 0.35; M.genLed.emissive.setHex(0); luzGen.intensity = 0; if (!anim) setLeds(true); estado.textContent = ''; return;
+    M.heat.opacity = 0.35; M.genLed.emissive.setHex(0); luzGen.intensity = 0; if (!anim) setLeds(true); return;
   }
   if (cpxAnim) return;
   pulsos.visible = true; pulsos.clear(); cpxBolas = [];
@@ -565,6 +591,7 @@ let cpxAnim2 = null, filasVisibles = filasIniciales;
 function mostrarFilas(n) { filasVisibles = n; filas.forEach((f, i) => { f.visible = i < n; f.scale.set(1, 1, 1); if (f.userData.sensor) f.userData.sensor.visible = i < n; }); ciudadNueva.forEach(b => { b.visible = n > filasIniciales; b.scale.set(1, 1, 1); b.position.y = 0.2 + b.userData.h / 2; }); if (typeof sincronizarCiudad === 'function') sincronizarCiudad(); }
 function animarComplejidad() {
   if (cpxAnim2 || jerAnim || eqfAnim) return;
+  openGuide(6);
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
   ctl.autoRotate = false; ctl.enabled = false; btnCpx.disabled = true;
@@ -601,7 +628,7 @@ function animarComplejidad() {
       const n = 2 + eventos.filter(([te]) => t >= te + CREC * 0.5).length; estado.textContent = `Complejidad · ${n} filas · ${n * perRow} racks · ${n * perRow * 6} servidores`;
     }
     else if (t < fin + OUT) { const u = ease((t - fin) / OUT); if (u > 0.4) techo.forEach((o, i) => o.visible = techoVis[i]); cam.position.lerpVectors(pIn, p0, u); ctl.target.lerpVectors(foco, t0, u); estado.textContent = 'Complejidad · 6 filas'; }
-    else { techo.forEach((o, i) => o.visible = techoVis[i]); mostrarFilas(rows); layers.querySelector('input[data-k="complejidad"]').checked = true; cam.position.copy(p0); ctl.target.copy(t0); ctl.update(); ctl.enabled = true; ctl.autoRotate = wasAuto; estado.textContent = ''; btnCpx.disabled = false; cpxAnim2 = null; return; }
+    else { techo.forEach((o, i) => o.visible = techoVis[i]); mostrarFilas(rows); layers.querySelector('input[data-k="complejidad"]').checked = true; cam.position.copy(p0); ctl.target.copy(t0); ctl.update(); ctl.enabled = true; ctl.autoRotate = wasAuto; btnCpx.disabled = false; cpxAnim2 = null; return; }
     ctl.update(); cpxAnim2 = requestAnimationFrame(step);
   });
 }
@@ -673,9 +700,10 @@ function animarEmergencia(on) {
     if (nube.userData.rotulo) nube.userData.rotulo.material.opacity = 0;
     nube.scale.setScalar(0.01); nube.position.copy(nubeC);
     hilosCiudad.children.forEach(h => { h.scale.y = 0.001; });
-    estado.textContent = ''; return;
+    return;
   }
   if (emAnim) return;
+  openGuide(8);
   emergente.visible = true; sincronizarCiudad(); const start = performance.now(); let ultimo = 0; const activos = [];
   emAnim = requestAnimationFrame(function step(now) {
     const t = (now - start) / 1000;
@@ -711,10 +739,22 @@ let adAnim = null;
 const LOMA_H = 3.0;
 M.loma = mat('loma', 0xd4d4d7, 0.95, 0);
 M.agua = mat('agua', 0x749dc4, 0.15, 0.1, { transparent: true, opacity: 0, depthWrite: false });
-const loma = new THREE.Mesh(new THREE.BoxGeometry(W + 6, LOMA_H, D + 6), M.loma); loma.name = 'loma'; loma.position.set(0, 0.2, 0); loma.scale.y = 0.001; loma.visible = false; E.add(loma);
+const loma = new THREE.Mesh(new THREE.BoxGeometry(W + 9, LOMA_H, D + 6), M.loma); loma.name = 'loma'; loma.position.set(0, 0.2, 0); loma.scale.y = 0.001; loma.visible = false; E.add(loma);
 const agua = new THREE.Mesh(new THREE.BoxGeometry(70, 1, 50), M.agua); agua.name = 'inundacion'; agua.position.set(0, 0.2, 0); agua.scale.y = 0.001; agua.visible = false; E.add(agua);
 // Grupos que suben con el sitio (todo salvo el entorno)
 const sitio = ['frontera', 'entradas', 'procesos', 'salidas', 'retroalimentacion', 'resiliencia', 'pulsos_energia'].map(n => ROOT.getObjectByName(n)).filter(Boolean).concat([nube, hilosRack]);
+// Vegetación del perímetro dentro de la loma (árboles/arbustos viven en entorno y cargan async)
+const LOMA_HX = (W + 6) / 2 + 1.2, LOMA_HZ = (D + 6) / 2 + 1.2;
+function vegetacionEnLoma() {
+  const out = [];
+  E.children.forEach(o => {
+    if (!/^(arbol_|deco_arbusto_)/.test(o.name)) return;
+    if (Math.abs(o.position.x) > LOMA_HX || Math.abs(o.position.z) > LOMA_HZ) return;
+    if (o.userData.baseY == null) o.userData.baseY = o.position.y;
+    out.push(o);
+  });
+  return out;
+}
 // Líneas externas: un extremo en el entorno (fijo) y otro en el sitio (sube)
 const reaim = (m, A, B) => { const len = A.distanceTo(B); m.geometry.dispose(); m.geometry = new THREE.CylinderGeometry(m.userData.r, m.userData.r, len, 10); m.position.copy(A.clone().add(B).multiplyScalar(0.5)); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize()); };
 const externas = [
@@ -723,7 +763,13 @@ const externas = [
   ['fibra_entrada', [-30, y0 + 5.6, 10], [MX, y0 + 1.8, MZ]],
   ['fibra_salida_datos', [-26, 7, -16], [MX, y0 + 1.7, MZ + 0.35]],
 ].map(([n, fijo, movil]) => { const m = ROOT.getObjectByName(n); m.userData.r = m.geometry.parameters.radiusTop; return { m, fijo: new THREE.Vector3(...fijo), movil: new THREE.Vector3(...movil) }; });
-function elevarSitio(h) { sitio.forEach(g => g.position.y = h); loma.visible = h > 0.01; loma.scale.y = Math.max(h / LOMA_H, 0.001); loma.position.y = 0.2 + h / 2; externas.forEach(e => reaim(e.m, e.fijo.clone().sub(new THREE.Vector3(0, h, 0)), e.movil)); const cb = layers.querySelector('input[data-k="adaptabilidad"]'); if (cb) cb.checked = h > LOMA_H / 2; }
+function elevarSitio(h) {
+  sitio.forEach(g => g.position.y = h);
+  vegetacionEnLoma().forEach(o => { o.position.y = o.userData.baseY + h; });
+  loma.visible = h > 0.01; loma.scale.y = Math.max(h / LOMA_H, 0.001); loma.position.y = 0.2 + h / 2;
+  externas.forEach(e => reaim(e.m, e.fijo.clone().sub(new THREE.Vector3(0, h, 0)), e.movil));
+  const cb = layers.querySelector('input[data-k="adaptabilidad"]'); if (cb) cb.checked = h > LOMA_H / 2;
+}
 // Lluvia: partículas sobre todo el terreno
 M.lluvia = new THREE.PointsMaterial({ color: 0xb5d9fd, size: 0.18, transparent: true, opacity: 0, depthWrite: false }); M.lluvia.name = 'lluvia';
 const N_LLUVIA = 2600, lluviaPos = new Float32Array(N_LLUVIA * 3);
@@ -732,7 +778,7 @@ const lluviaGeo = new THREE.BufferGeometry(); lluviaGeo.setAttribute('position',
 const lluvia = new THREE.Points(lluviaGeo, M.lluvia); lluvia.name = 'lluvia'; lluvia.visible = false; E.add(lluvia);
 function caerLluvia(dt) { const a = lluviaGeo.attributes.position.array; for (let i = 0; i < N_LLUVIA; i++) { a[i * 3 + 1] -= 18 * dt; if (a[i * 3 + 1] < 0.2) a[i * 3 + 1] = 30; } lluviaGeo.attributes.position.needsUpdate = true; }
 function animarAdaptabilidad() {
-  if (adAnim) return; btnAd.disabled = true; elevarSitio(0);
+  if (adAnim) return; openGuide(10); btnAd.disabled = true; elevarSitio(0);
   const ease = easeInOutCubic;
   const LLUVIA = 3.0, SUBE = 2.5, PAUSA = 0.6, INUNDA = 3.0, HOLD = 2.5, BAJA = 2.5, AGUA_H = 2.2;
   const T1 = LLUVIA, T2 = T1 + SUBE, T3 = T2 + PAUSA, T4 = T3 + INUNDA, T5 = T4 + HOLD, T6 = T5 + BAJA;
@@ -747,7 +793,7 @@ function animarAdaptabilidad() {
     else if (t < T4) { const k = ease((t - T3) / INUNDA); M.agua.opacity = 0.55 * Math.min(k * 3, 1); agua.scale.y = Math.max(AGUA_H * k, 0.001); agua.position.y = 0.2 + AGUA_H * k / 2; estado.textContent = 'Adaptabilidad · el entorno se inunda'; }
     else if (t < T5) { agua.position.y = 0.2 + AGUA_H / 2 + 0.05 * Math.sin(t * 2); estado.textContent = 'Adaptabilidad · el datacenter queda a salvo'; }
     else if (t < T6) { const k = 1 - ease((t - T5) / BAJA); M.agua.opacity = 0.55 * k; agua.scale.y = Math.max(AGUA_H * k, 0.001); agua.position.y = 0.2 + AGUA_H * k / 2; estado.textContent = 'Adaptabilidad · el agua se retira'; }
-    else { agua.visible = false; M.agua.opacity = 0; lluvia.visible = false; M.lluvia.opacity = 0; estado.textContent = ''; btnAd.disabled = false; adAnim = null; return; }
+    else { agua.visible = false; M.agua.opacity = 0; lluvia.visible = false; M.lluvia.opacity = 0; btnAd.disabled = false; adAnim = null; return; }
     adAnim = requestAnimationFrame(step);
   });
 }
@@ -789,19 +835,20 @@ function aplicarDeterioro(k) {
   M.led.emissiveIntensity = ledBase.ei * Math.max(0, 1 - k * 1.6); M.ledGreen.emissiveIntensity = ledGreenBase.ei * Math.max(0, 1 - k * 1.6); M.lampara.emissiveIntensity = 1.8 * Math.max(0, 1 - k * 1.4); lamparas.forEach(l => l.intensity = lampBase * Math.max(0, 1 - k * 1.4)); luzSala.intensity = salaBase * Math.max(0, 1 - k * 1.6);
   escombros.visible = k > 0.55; escombros.children.forEach((e, i) => { const u = Math.min(Math.max((k - 0.55 - (i / 60) * 0.4) / 0.08, 0), 1); e.scale.setScalar(Math.max(u, 0.001)); });
 }
+const BG_DIA = 0xf0ebe6, BG_NOCHE = 0x111114;
 function mezclaLuz(noche) { // 0 = día, 1 = noche (continuo)
   const d = 1 - noche;
-  stage._hemi.intensity = 0.38 + 0.57 * d; stage._hemi.color.setHex(0xe8f0f8).lerp(new THREE.Color(0xb497cf), noche); stage._hemi.groundColor.setHex(0xc0ccd8).lerp(new THREE.Color(0x0a0a0a), noche);
-  stage._key.intensity = 0.68 + 1.17 * d; stage._key.color.setHex(0xfff4ea).lerp(new THREE.Color(0xd7c6ea), noche); stage._fill.intensity = 0.2 + 0.32 * d;
-  if (stage._rim) { stage._rim.intensity = 0.18 + 0.14 * d; stage._rim.color.setHex(0xd7c6ea); }
-  const bg = new THREE.Color(0xd8e6f2).lerp(new THREE.Color(0x0a0a0a), noche); stage.style.setProperty('--stage-bg', '#' + bg.getHexString());
+  stage._hemi.intensity = 0.38 + 0.57 * d; stage._hemi.color.setHex(0xe8f0f8).lerp(new THREE.Color(0xb8c4d4), noche); stage._hemi.groundColor.setHex(0xc0ccd8).lerp(new THREE.Color(BG_NOCHE), noche);
+  stage._key.intensity = 0.68 + 1.17 * d; stage._key.color.setHex(0xfff4ea).lerp(new THREE.Color(0xdde4ee), noche); stage._fill.intensity = 0.2 + 0.32 * d;
+  if (stage._rim) { stage._rim.intensity = 0.18 + 0.14 * d; stage._rim.color.setHex(0xdde4ee); }
+  const bg = new THREE.Color(BG_DIA).lerp(new THREE.Color(BG_NOCHE), noche); stage.style.setProperty('--stage-bg', '#' + bg.getHexString());
   (stage.closest('.dc-page') || document.body).classList.toggle('noche', noche > 0.5); stage.style.setProperty('--stage-note', noche > 0.5 ? '#c9b6df' : 'rgba(26, 25, 21, 0.5)');
   stage.style.setProperty('--stage-toolbar-bg', noche > 0.5 ? 'rgba(10, 10, 10, 0.78)' : 'rgba(255, 255, 255, 0.92)');
   stage.style.setProperty('--stage-toolbar-ink', noche > 0.5 ? '#f4f7ff' : '#2c4a64');
   stage.style.setProperty('--stage-toolbar-border', noche > 0.5 ? 'rgba(244, 247, 255, 0.14)' : 'rgba(29, 45, 61, 0.14)');
 }
 function animarEntropia() {
-  if (enAnim) return; btnEn.disabled = true; aplicarDeterioro(0);
+  if (enAnim) return; openGuide(11); btnEn.disabled = true; aplicarDeterioro(0);
   const DUR = 16, CICLOS = 6, start = performance.now(); cielo.visible = true;
   const noche0 = modoNoche;
   enAnim = requestAnimationFrame(function step(now) {
@@ -818,7 +865,7 @@ function animarEntropia() {
 // ===== ANIMACIÓN: neguentropía (energía del entorno → reparación por frente → orden) =====
 let ngAnim = null, ngFlujo = false;
 function animarNeguentropia() {
-  if (ngAnim || enAnim) return; btnNg.disabled = true;
+  if (ngAnim || enAnim) return; openGuide(12); btnNg.disabled = true;
   if (entropiaK < 0.99) aplicarDeterioro(1); // parte de las ruinas
   const xs = deterioro.map(o => detBase.get(o).pos.x), xMax = Math.max(...xs) + 1, xMin = Math.min(...xs) - 1;
   const ENTRA = 2.0, REPARA = 9.0, CIERRE = 2.5, ANCHO = 4.0, start = performance.now();
@@ -835,7 +882,7 @@ function animarNeguentropia() {
       estado.textContent = `Neguentropía · mantenimiento en curso · orden ${Math.round((1 - kGlobal) * 100)} %`;
     }
     else if (t < ENTRA + REPARA + CIERRE) { if (entropiaK !== 0) { aplicarDeterioro(0); layers.querySelector('input[data-k="entropia"]').checked = false; } estado.textContent = 'Neguentropía · el orden se mantiene a costa de energía del entorno'; }
-    else { if (ngFlujo) { animarFlujo(false); ngFlujo = false; } estado.textContent = ''; btnNg.disabled = false; ngAnim = null; return; }
+    else { if (ngFlujo) { animarFlujo(false); ngFlujo = false; } btnNg.disabled = false; ngAnim = null; return; }
     ngAnim = requestAnimationFrame(step);
   });
 }
@@ -852,7 +899,7 @@ function cargaRefrigeracion(c) { // c 0..1
   rejillas.forEach(r => { r.material = M.rejillaCarga; }); M.rejillaCarga.emissiveIntensity = 1.4 * c;
 }
 function animarHomeostasis() {
-  if (hoAnim || enAnim) return; btnHo.disabled = true;
+  if (hoAnim || enAnim) return; openGuide(13); btnHo.disabled = true;
   const DUR = 16, CICLOS = 2, start = performance.now(); cielo.visible = true; const noche0 = modoNoche;
   hoAnim = requestAnimationFrame(function step(now) {
     const t = (now - start) / 1000, k = Math.min(t / DUR, 1);
@@ -861,7 +908,7 @@ function animarHomeostasis() {
     const carga = 0.15 + 0.85 * (1 - nocheCont); cargaRefrigeracion(carga);
     ventiladores.forEach(v => v.rotation.y += 0.04 + 0.5 * carga);
     estado.textContent = `Homeóstasis · ${nocheCont < 0.5 ? 'día' : 'noche'} · refrigeración ${Math.round(carga * 100)} % · chips 20 °C`;
-    if (t >= DUR + 1.5) { cielo.visible = false; setModo(modoNoche); plumas.forEach(p => { p.scale.set(1, 1, 1); p.position.y = p.userData.baseY || RY + 1.8; }); M.heat.opacity = 0.35; rejillas.forEach(r => r.material = M.grille); estado.textContent = ''; btnHo.disabled = false; hoAnim = null; return; }
+    if (t >= DUR + 1.5) { cielo.visible = false; setModo(modoNoche); plumas.forEach(p => { p.scale.set(1, 1, 1); p.position.y = p.userData.baseY || RY + 1.8; }); M.heat.opacity = 0.35; rejillas.forEach(r => r.material = M.grille); btnHo.disabled = false; hoAnim = null; return; }
     hoAnim = requestAnimationFrame(step);
   });
 }
@@ -891,6 +938,7 @@ function eqLabel(txt, color = '#e74c3c') {
 }
 function animarEquilibrio() {
   if (eqAnim || enAnim || hoAnim || totAnim || esAnim) return;
+  openGuide(14);
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
   const wasDamp = lockScriptedCam(ctl);
@@ -1154,7 +1202,6 @@ function animarEquilibrio() {
     techo.forEach((o, i) => { o.visible = techoVis[i]; });
     unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
     if (btnEq) btnEq.disabled = false;
-    estado.textContent = '';
     eqAnim = null;
   };
 
@@ -1327,6 +1374,7 @@ function rfTempBoard() {
 
 function animarRetroalimentacion() {
   if (rfAnim || enAnim || hoAnim || eqAnim || totAnim || esAnim) return;
+  openGuide(15);
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
   const wasDamp = lockScriptedCam(ctl);
@@ -1497,7 +1545,6 @@ function animarRetroalimentacion() {
     termo.userData.pintarTemp(20);
     unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
     if (btnRf) btnRf.disabled = false;
-    estado.textContent = '';
     rfAnim = null;
   };
 
@@ -1676,6 +1723,7 @@ function animarRetroalimentacion() {
 let rcAnim = null;
 function animarRecursividad() {
   if (rcAnim || jerAnim || eqfAnim || esAnim || totAnim) return;
+  openGuide(17);
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
   const wasDamp = lockScriptedCam(ctl);
@@ -1769,7 +1817,6 @@ function animarRecursividad() {
     techo.forEach((o, i) => { o.visible = techoVis[i]; });
     unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
     if (btnRc) btnRc.disabled = false;
-    estado.textContent = '';
     rcAnim = null;
   };
 
@@ -1836,8 +1883,8 @@ const hilosComp = [
 ].map(([n, a, b]) => { const h = line(complementos, n, M.hiloComp, a, b, 0.05); h.userData.curva = new THREE.LineCurve3(new THREE.Vector3(...a), new THREE.Vector3(...b)); return h; });
 const pulsosComp = hilosComp.map((h, i) => { const p = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), M.pulsoDatos); p.name = `pulso_complemento_${i + 1}`; complementos.add(p); return p; });
 function animarComplementariedad(on) {
-  if (!on) { if (cpAnim) cancelAnimationFrame(cpAnim); cpAnim = null; complementos.visible = false; if (!enAnim && !anim) estado.textContent = ''; return; }
-  if (cpAnim) return; complementos.visible = true; const start = performance.now();
+  if (!on) { if (cpAnim) cancelAnimationFrame(cpAnim); cpAnim = null; complementos.visible = false; return; }
+  if (cpAnim) return; openGuide(18); complementos.visible = true; const start = performance.now();
   cpAnim = requestAnimationFrame(function step(now) {
     const t = (now - start) / 1000;
     pulsosComp.forEach((p, i) => { const u = (t * 0.25 + i * 0.2) % 1; hilosComp[i].userData.curva.getPointAt(u, p.position); });
@@ -1881,7 +1928,7 @@ causaDefs.forEach(d => {
 });
 const rotEfecto = rotCausa('EFECTO: SALA +6 °C', 'efecto_rotulo');
 function animarMulticausalidad() {
-  if (mcAnim || enAnim || hoAnim || rfAnim) return; btnMc.disabled = true;
+  if (mcAnim || enAnim || hoAnim || rfAnim) return; openGuide(19); btnMc.disabled = true;
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
   ctl.autoRotate = false; ctl.enabled = false;
@@ -1962,7 +2009,7 @@ function animarMulticausalidad() {
     termo.userData.pintarTemp(20);
     cam.position.copy(p0); ctl.target.copy(t0); ctl.update();
     ctl.enabled = true; ctl.autoRotate = wasAuto;
-    estado.textContent = ''; btnMc.disabled = false; mcAnim = null;
+    btnMc.disabled = false; mcAnim = null;
   };
 
   mcAnim = requestAnimationFrame(function step(now) {
@@ -2153,6 +2200,7 @@ function estTickFlujos(t) {
 let totAnim = null;
 function animarTotalidad() {
   if (totAnim || esAnim || jerAnim || eqfAnim || rcAnim || mcAnim) return;
+  openGuide(3);
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
   const wasDamp = lockScriptedCam(ctl);
@@ -2294,7 +2342,6 @@ function animarTotalidad() {
     tabiquesNoc.forEach((o, i) => { o.visible = tabiquesVis[i]; });
     unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
     if (btnTot) btnTot.disabled = false;
-    estado.textContent = '';
   };
 
   totAnim = requestAnimationFrame(function step(now) {
@@ -2331,6 +2378,7 @@ function animarTotalidad() {
 }
 function animarEstructura() {
   if (esAnim || jerAnim || eqfAnim || cpxAnim2 || totAnim) return;
+  openGuide(16);
   const cam = stage._camera, ctl = stage._controls;
   const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
   const wasDamp = lockScriptedCam(ctl);
@@ -2398,7 +2446,6 @@ function animarEstructura() {
     techo.forEach((o, i) => { o.visible = techoVis[i]; });
     unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
     if (btnEs) btnEs.disabled = false;
-    estado.textContent = '';
     esAnim = null;
   };
 
@@ -2552,12 +2599,12 @@ const CAPAS = {
   },
   emergencia: {
     label: 'Emergencia',
-    desc: 'Ningún rack, cable o chiller es un servicio; al interactuar emerge el servicio en la nube: una propiedad nueva que llega a la ciudad y no existe en ninguna parte por separado.',
+    desc: 'Cuando servidores, red, energía y refrigeración interactúan, surge una propiedad nueva: el servicio en la nube. Solo existe en el sistema completo, no en un componente aislado.',
     emergencia: true, off: true,
   },
   sinergia: {
     label: 'Sinergia',
-    desc: 'Flujo de energía y datos: entra por la red eléctrica y la fibra, sale como datos y calor. Todos los elementos trabajan en conjunto y el resultado supera la suma de las partes.',
+    desc: 'La combinación de diferentes servicios operando logra el completo funcionamiento del Data Center: entra energía y datos, salen datos y calor.',
     flujo: true, off: true,
   },
   adaptabilidad: {
@@ -2567,7 +2614,7 @@ const CAPAS = {
   },
   multicausalidad: {
     label: 'Multicausalidad',
-    desc: 'Un mismo efecto (la sala se calienta) tiene varias causas simultáneas: sol intenso, pico de demanda de la ciudad y un CRAC averiado. Ninguna lo explica sola.',
+    desc: 'Un aumento de temperatura ocurre por varias causas a la vez: ola de calor exterior, fallo en el CRAC y aumento de demanda de datos. Ninguna lo explica sola.',
     soloBoton: true,
   },
   complementariedad: {
@@ -2577,12 +2624,12 @@ const CAPAS = {
   },
   recursividad: {
     label: 'Recursividad',
-    desc: 'Un sistema dentro de otro: el Data Center contiene racks, el rack contiene servidores, el servidor contiene componentes y cada componente también está formado por partes.',
+    desc: 'Al acercarnos: Data Center → rack → servidor → procesador → partes. En cada nivel se repite la misma idea: un sistema dentro de otro, compuesto a su vez por subsistemas.',
     soloBoton: true,
   },
   estructura: {
     label: 'Estructura',
-    desc: 'Racks en filas, servidores y switches, red, energía y refrigeración: la correcta distribución y conexión de componentes forma la estructura que hace funcionar el Data Center.',
+    desc: 'Racks en filas, servidores y switches, red, energía y refrigeración en los pasillos: esa distribución y esas relaciones forman la estructura que sostiene el servicio.',
     soloBoton: true,
   },
   equilibrio: {
@@ -2607,7 +2654,7 @@ const CAPAS = {
   },
   enfriamiento: {
     label: 'Equifinalidad',
-    desc: 'Diferentes estrategias (redundancia, replicación o disaster recovery) pueden conducir al mismo estado final: mantener el servicio disponible.',
+    desc: 'Mantener un servicio crítico disponible por caminos distintos: redundancia de servidores, replicación de datos o activación de un sitio alterno ante una falla.',
     soloBoton: true,
   },
 };
@@ -2660,29 +2707,37 @@ principios.forEach(([label, k, capa], i) => {
   else if (capa && CAPAS[capa].entropia) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => { if (!enAnim) aplicarDeterioro(e.target.checked ? 1 : 0); }; }
   else if (capa && CAPAS[capa].loma) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => { if (!adAnim) elevarSitio(e.target.checked ? LOMA_H : 0); }; }
   else if (capa && CAPAS[capa].emergencia) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => { if (e.target.checked) { const cc = layers.querySelector('input[data-k="complejidad"]'); if (cc && !cc.checked) { cc.checked = true; mostrarFilas(rows); } } animarEmergencia(e.target.checked); }; }
-  else if (capa && CAPAS[capa].flujo) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => animarFlujo(e.target.checked); }
+  else if (capa && CAPAS[capa].flujo) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => { if (e.target.checked) openGuide(7); animarFlujo(e.target.checked); }; }
   else if (capa && CAPAS[capa].anim) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => mostrarFilas(e.target.checked ? rows : filasIniciales); }
   else if (capa) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => { const on = e.target.checked; CAPAS[capa].objetos.forEach(o => o.visible = on); (CAPAS[capa].grupos || []).forEach(g => { SUB[g].visible = on; const cb = layers.querySelector(`input[data-k="${g}"]`); if (cb) cb.checked = on; }); }; }
   if (capa === 'totalidad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnTot'; b.textContent = 'Todo'; b.title = 'Resalta cada parte y luego el Data Center completo'; b.onclick = ev => { ev.preventDefault(); animarTotalidad(); }; l.appendChild(b); }
   if (capa === 'complejidad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnCpx'; b.textContent = 'Crecer'; b.title = 'Zoom a la sala: las filas se duplican de 2 a 6'; b.onclick = ev => { ev.preventDefault(); animarComplejidad(); }; l.appendChild(b); }
   if (capa === 'jerarquia') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnJer'; b.textContent = 'Anim'; b.title = 'Recorrido chip → blade → rack → sistema'; b.onclick = ev => { ev.preventDefault(); animarJerarquia(); }; l.appendChild(b); }
   if (capa === 'enfriamiento') {
-    const group = document.createElement('span');
-    group.className = 'btn-group';
-    group.setAttribute('role', 'group');
-    group.setAttribute('aria-label', 'Caminos de equifinalidad');
-    [['A', 'A', 'Redundancia de servidores: si uno falla, el otro continúa'],
-     ['B', 'B', 'Replicación: los datos se mantienen sincronizados en otro sistema'],
-     ['C', 'C', 'Disaster Recovery: si falla el sitio principal, se activa otro']].forEach(([id, txt, tip]) => {
-      const b = document.createElement('button');
-      b.className = 'btn-rayo btn-rayo--sm';
-      b.id = `btnEqf${id}`;
-      b.textContent = txt;
-      b.title = tip;
-      b.onclick = ev => { ev.preventDefault(); animarEquifinalidad(id); };
-      group.appendChild(b);
+    const selEqf = document.createElement('select');
+    selEqf.id = 'selEqf';
+    selEqf.className = 'panel-select';
+    selEqf.setAttribute('aria-label', 'Camino de equifinalidad');
+    selEqf.title = 'Elige un camino: A redundancia, B replicación, C disaster recovery';
+    [
+      ['', 'Ruta'],
+      ['A', 'A'],
+      ['B', 'B'],
+      ['C', 'C'],
+    ].forEach(([value, label], i) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;
+      if (i === 0) { opt.disabled = true; opt.selected = true; }
+      selEqf.appendChild(opt);
     });
-    l.appendChild(group);
+    selEqf.onchange = () => {
+      const ruta = selEqf.value;
+      if (!ruta) return;
+      animarEquifinalidad(ruta);
+      selEqf.value = '';
+    };
+    l.appendChild(selEqf);
   }
   if (k === 'entorno') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnRayo'; b.textContent = 'Rayo'; b.title = 'Simular descarga sobre la red eléctrica'; b.onclick = ev => { ev.preventDefault(); simularRayo(); }; l.appendChild(b); }
   if (capa === 'adaptabilidad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnAd'; b.textContent = 'Inundar'; b.title = 'El sitio sube a una loma y la inundación no lo alcanza'; b.onclick = ev => { ev.preventDefault(); animarAdaptabilidad(); }; l.appendChild(b); }
@@ -2725,23 +2780,23 @@ const onPickUp = e => {
 };
 pickEl.addEventListener('pointerdown', onPickDown);
 pickEl.addEventListener('pointerup', onPickUp);
-const btnRayo = document.getElementById('btnRayo'), btnMc = document.getElementById('btnMc'), btnRc = document.getElementById('btnRc'), btnRf = document.getElementById('btnRf'), btnEq = document.getElementById('btnEq'), btnHo = document.getElementById('btnHo'), btnNg = document.getElementById('btnNg'), btnEn = document.getElementById('btnEn'), btnAd = document.getElementById('btnAd'), btnRes = document.getElementById('btnRes'), btnEqfA = document.getElementById('btnEqfA'), btnEqfB = document.getElementById('btnEqfB'), btnEqfC = document.getElementById('btnEqfC'), btnJer = document.getElementById('btnJer'), btnCpx = document.getElementById('btnCpx'), btnEs = document.getElementById('btnEs'), btnTot = document.getElementById('btnTot');
+const btnRayo = document.getElementById('btnRayo'), btnMc = document.getElementById('btnMc'), btnRc = document.getElementById('btnRc'), btnRf = document.getElementById('btnRf'), btnEq = document.getElementById('btnEq'), btnHo = document.getElementById('btnHo'), btnNg = document.getElementById('btnNg'), btnEn = document.getElementById('btnEn'), btnAd = document.getElementById('btnAd'), btnRes = document.getElementById('btnRes'), btnJer = document.getElementById('btnJer'), btnCpx = document.getElementById('btnCpx'), btnEs = document.getElementById('btnEs'), btnTot = document.getElementById('btnTot');
 // ===== Iluminación día / noche =====
 let lampBase = 0, salaBase = 0, farolBase = 0;
 function setModo(noche) {
   modoNoche = noche;
   (stage.closest('.dc-page') || document.body).classList.toggle('noche', noche);
   document.getElementById('mNoche').setAttribute('aria-pressed', noche); document.getElementById('mDia').setAttribute('aria-pressed', !noche);
-  const bg = noche ? '#0a0a0a' : '#d8e6f2';
+  const bg = '#' + (noche ? BG_NOCHE : BG_DIA).toString(16).padStart(6, '0');
   stage.style.setProperty('--stage-bg', bg);
   stage.style.setProperty('--stage-note', noche ? '#c9b6df' : 'rgba(26, 25, 21, 0.5)');
   stage.style.setProperty('--stage-toolbar-bg', noche ? 'rgba(10, 10, 10, 0.78)' : 'rgba(255, 255, 255, 0.92)');
   stage.style.setProperty('--stage-toolbar-ink', noche ? '#f4f7ff' : '#2c4a64');
   stage.style.setProperty('--stage-toolbar-border', noche ? 'rgba(244, 247, 255, 0.14)' : 'rgba(29, 45, 61, 0.14)');
-  stage._hemi.intensity = noche ? 0.38 : 0.95; stage._hemi.color.setHex(noche ? 0xb497cf : 0xe8f0f8); stage._hemi.groundColor.setHex(noche ? 0x0a0a0a : 0xc0ccd8);
-  stage._key.intensity = noche ? 0.68 : 1.85; stage._key.color.setHex(noche ? 0xd7c6ea : 0xfff4ea);
+  stage._hemi.intensity = noche ? 0.38 : 0.95; stage._hemi.color.setHex(noche ? 0xb8c4d4 : 0xe8f0f8); stage._hemi.groundColor.setHex(noche ? BG_NOCHE : 0xc0ccd8);
+  stage._key.intensity = noche ? 0.68 : 1.85; stage._key.color.setHex(noche ? 0xdde4ee : 0xfff4ea);
   stage._fill.intensity = noche ? 0.2 : 0.52;
-  if (stage._rim) { stage._rim.intensity = noche ? 0.18 : 0.32; stage._rim.color.setHex(0xd7c6ea); }
+  if (stage._rim) { stage._rim.intensity = noche ? 0.18 : 0.32; stage._rim.color.setHex(0xdde4ee); }
   lampBase = noche ? 80 : 0; salaBase = noche ? 120 : 0; farolBase = noche ? 75 : 0; M.farol.emissiveIntensity = noche ? 1.55 : 0.35; faroles.forEach(l => l.intensity = farolBase);
   ledBase.ei = noche ? 2.2 : 1.15; M.lampara.emissiveIntensity = noche ? 1.7 : 0.35;
   M.lampWarm.emissiveIntensity = noche ? 1.5 : 0.3; lucesNoc.forEach(l => l.intensity = noche ? 1.05 : 0.18);
