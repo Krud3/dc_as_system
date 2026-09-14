@@ -22,7 +22,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'El Data Center funciona como un conjunto de componentes relacionados que trabajan para cumplir una función en común.',
     ejemplo:
-      'Se muestran los diferentes componentes del Data Center funcionando como un conjunto, donde cada parte cumple una función necesaria para el funcionamiento general.',
+      'Se recorren los elementos principales del Data Center —servidores, switches, almacenamiento, energía, refrigeración, sala NOC y seguridad— y al final todos quedan resaltados juntos, mostrando que el sistema se entiende como un todo.',
   },
   {
     n: 4,
@@ -118,7 +118,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'Proceso en el cual las salidas térmicas u operacionales se censan y se reinyectan como señal de entrada para ajustar la operación.',
     ejemplo:
-      'Un sensor detecta un aumento de temperatura y permite que el sistema de refrigeración realice los ajustes necesarios.',
+      'La temperatura sube, el sensor la mide y envía la señal al control; el sistema aumenta la refrigeración, la temperatura baja y el sensor vuelve a medir. Ese lazo se repite de forma continua.',
   },
   {
     n: 16,
@@ -134,7 +134,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'El Data Center está compuesto por subsistemas que, a su vez, están formados por elementos organizados.',
     ejemplo:
-      'Un servidor tipo rack reproduce la arquitectura global: frontera (chasis), entradas (CA y aire), procesos, salidas (calor y bits) y control homeostático propio (sensores y ventiladores).',
+      'Al acercarnos al Data Center encontramos un rack; dentro del rack, un servidor; dentro del servidor, procesador, memoria y almacenamiento; y dentro del procesador, nuevas partes. El mismo concepto se repite en cada nivel.',
   },
   {
     n: 18,
