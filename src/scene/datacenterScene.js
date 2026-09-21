@@ -586,50 +586,210 @@ function animarFlujo(on) {
   });
 }
 
-// ===== ANIMACIÓN: complejidad (zoom a la sala; filas 2 → 4 → 6) =====
+// ===== ANIMACIÓN: complejidad (componentes e interacciones que se incorporan) =====
 let cpxAnim2 = null, filasVisibles = filasIniciales;
 function mostrarFilas(n) { filasVisibles = n; filas.forEach((f, i) => { f.visible = i < n; f.scale.set(1, 1, 1); if (f.userData.sensor) f.userData.sensor.visible = i < n; }); ciudadNueva.forEach(b => { b.visible = n > filasIniciales; b.scale.set(1, 1, 1); b.position.y = 0.2 + b.userData.h / 2; }); if (typeof sincronizarCiudad === 'function') sincronizarCiudad(); }
 function animarComplejidad() {
   if (cpxAnim2 || jerAnim || eqfAnim) return;
   openGuide(6);
   const cam = stage._camera, ctl = stage._controls;
-  const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate;
-  ctl.autoRotate = false; ctl.enabled = false; btnCpx.disabled = true;
-  mostrarFilas(filasIniciales);
-  const foco = new THREE.Vector3(HX - 0.5, fy + 0.9, HZ - 0.5), pIn = new THREE.Vector3(HX + 7.5, y0 + 2.9, HZ + HD / 2 + 6.0);
-  const focoCiudad = new THREE.Vector3(-27, 4, -13), pCiudad = new THREE.Vector3(-8, 12, 14);
-  ciudadNueva.forEach(b => { b.visible = false; b.scale.set(1, 1, 1); b.position.y = 0.2 + b.userData.h / 2; });
-  // Vista baja desde el sureste, por debajo de la cubierta: el techo nunca se interpone
-  // entre la cámara y los racks. Se oculta la cubierta + todo lo apoyado en ella
-  // (chillers, UMA, meteo y sus decos) para que no queden piezas flotando en cuadro.
+  const p0 = cam.position.clone(), t0 = ctl.target.clone(), wasAuto = ctl.autoRotate, near0 = cam.near;
+  const wasDamp = lockScriptedCam(ctl);
+  btnCpx.disabled = true;
+  cam.near = 0.1; cam.updateProjectionMatrix();
+  ROOT.updateMatrixWorld(true);
+
   const techo = [];
-  ROOT.traverse(o => { if (/^(cubierta|uma_cubierta|uma_ventilador|uma_rejilla|uma_aro|chiller_|calor_chiller_|estacion_meteo|meteo_panel|meteo_veleta|deco_(cubierta|uma_|chiller_|meteo_|anemo_))/.test(o.name)) techo.push(o); });
+  ROOT.traverse(o => { if (/^(cubierta|uma_cubierta|uma_ventilador|uma_rejilla|uma_aro|estacion_meteo|meteo_panel|meteo_veleta|deco_(cubierta|uma_|meteo_|anemo_))/.test(o.name)) techo.push(o); });
   const techoVis = techo.map(o => o.visible);
+  techo.forEach(o => { o.visible = false; });
+  const puertasVis = estPuertas.map(p => p.visible);
+  estPuertas.forEach(p => { p.visible = false; });
+  const tabiquesNoc = [];
+  ROOT.traverse(o => { if (/^(tabique_3|tabique_4)$/.test(o.name)) tabiquesNoc.push(o); });
+  const tabiquesVis = tabiquesNoc.map(o => o.visible);
+  tabiquesNoc.forEach(o => { o.visible = false; });
+
+  const pick = (test) => {
+    const out = [];
+    ROOT.traverse(o => {
+      if (!o.isMesh || !o.visible) return;
+      if (/^(deco_rack_.*_puerta|lluvia|inundacion|nube|pulso|hilo|rayo|calor_|generador_humo|humo_emergencia|cielo|sol|luna|eqf_|est_|ventana|complejidad_)/.test(o.name)) return;
+      if (test(o.name)) out.push(o);
+    });
+    return out;
+  };
+  const visInFila = o => o.visible && o.parent && o.parent.parent && o.parent.parent.visible;
+  const servidores = estPartes.servidores.filter(visInFila);
+  const switches = estPartes.switches.filter(visInFila);
+  const almacenamiento = pick(n => /ssd|banco_baterias|ups_rojo_bat/.test(n));
+  const energia = [
+    ...estPartes.energia.filter(visInFila),
+    ...pick(n => /^(sala_ups|ups_extra|ups_puerta|ups_display|ups_sticker|ups_zocalo|ups_rojo_bastidor|transformador|acometida|alimentador|generador$|poste_acometida|bus_electrico|pdu_azul)/.test(n) || /_power|_pdu|_power_base/.test(n)),
+  ];
+  const refrigeracion = [
+    ...estPartes.cracs.filter(o => o.visible),
+    ...pick(n => /^(crac_|chiller_|calor_chiller)/.test(n)),
+  ];
+  const red = [
+    ...estPartes.red.filter(visInFila),
+    ...estPartes.bandejas.filter(o => o.visible && o.parent && o.parent.visible),
+  ];
+  const noc = [];
+  const nocRoot = ROOT.getObjectByName('noc');
+  if (nocRoot) nocRoot.traverse(o => { if (o.isMesh && o.visible) noc.push(o); });
+  pick(n => /^(noc_|deco_noc|bus_monitoreo_noc)/.test(n)).forEach(o => { if (!noc.includes(o)) noc.push(o); });
+
+  const ocultar = [...new Set([...servidores, ...switches, ...almacenamiento, ...energia, ...refrigeracion, ...red, ...noc])];
+  const vis0 = new Map();
+  ocultar.forEach(o => { vis0.set(o, o.visible); o.visible = false; });
+
+  const cpxLinks = new THREE.Group(); cpxLinks.name = 'complejidad_links'; cpxLinks.visible = false; ROOT.add(cpxLinks);
+  const linkMat = (M.hilo ? M.hilo.clone() : M.cableOn.clone());
+  if (linkMat.transparent !== undefined) { linkMat.transparent = true; linkMat.opacity = 0.95; }
+  const addLink = (a, b) => {
+    if (!a || !b) return;
+    const pa = a.getWorldPosition(new THREE.Vector3());
+    const pb = b.getWorldPosition(new THREE.Vector3());
+    if (pa.distanceTo(pb) < 0.4) return;
+    const mid = pa.clone().lerp(pb, 0.5);
+    mid.y += 0.45 + pa.distanceTo(pb) * 0.1;
+    const cv = new THREE.QuadraticBezierCurve3(pa, mid, pb);
+    const h = new THREE.Mesh(new THREE.TubeGeometry(cv, 14, 0.03, 6), linkMat);
+    h.name = 'complejidad_link'; cpxLinks.add(h);
+  };
+  const rep = (list) => list.find(o => o && o.visible) || list[0];
+  const buildLinks = () => {
+    cpxLinks.clear();
+    const nodes = [rep(servidores), rep(switches), rep(almacenamiento), rep(energia), rep(refrigeracion), rep(noc)].filter(Boolean);
+    for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) addLink(nodes[i], nodes[j]);
+    const srvVis = servidores.filter(o => o.visible).slice(0, 6);
+    const swVis = switches.filter(o => o.visible).slice(0, 6);
+    srvVis.forEach((s, i) => { if (swVis[i]) addLink(s, swVis[i]); });
+    if (srvVis.length) red.filter(o => o.visible).slice(0, 8).forEach((r, i) => addLink(r, srvVis[i % srvVis.length]));
+  };
+
+  const cpxHlMats = new Map();
+  const cpxClearHl = () => {
+    cpxHlMats.forEach(prev => {
+      const mat = prev.mat;
+      if (!mat) return;
+      if (prev.emissive) { mat.emissive.copy(prev.emissive); mat.emissiveIntensity = prev.ei; }
+      else if (mat.emissive) { mat.emissive.setHex(0x000000); mat.emissiveIntensity = 0; }
+    });
+    cpxHlMats.clear();
+  };
+  const cpxHighlight = (objs) => {
+    cpxClearHl();
+    if (!objs || !objs.length) return;
+    objs.forEach(o => {
+      if (!o || !o.isMesh || !o.visible || !o.material || Array.isArray(o.material)) return;
+      const mat = o.material;
+      if (cpxHlMats.has(mat.uuid)) return;
+      cpxHlMats.set(mat.uuid, { mat, emissive: mat.emissive ? mat.emissive.clone() : null, ei: mat.emissiveIntensity || 0 });
+      if (!mat.emissive) mat.emissive = new THREE.Color(0x000000);
+      mat.emissive.setHex(0xb497cf);
+      mat.emissiveIntensity = Math.max(mat.emissiveIntensity || 0, 0.35) + 0.9;
+    });
+  };
+  const show = (list) => { list.forEach(o => { o.visible = true; }); };
+
+  const focoSala = new THREE.Vector3(HX, fy + 1.1, HZ);
+  const camSala = new THREE.Vector3(HX + 10, y0 + 4.5, HZ + HD / 2 + 8);
+  const camSrv = new THREE.Vector3(HX + 4.5, fy + 2.4, HZ + HD / 2 + 4.2);
+  const focoSrv = new THREE.Vector3(HX, fy + 1.0, zFila(0));
+  const camSw = new THREE.Vector3(HX + 3.2, fy + 3.0, HZ + HD / 2 + 3.6);
+  const focoSw = new THREE.Vector3(HX, fy + rackH * 0.75, zFila(0));
+  const ups = ROOT.getObjectByName('sala_ups') || ROOT.getObjectByName('ups_extra_0') || ROOT.getObjectByName('banco_baterias_1');
+  const fUps = ups ? ups.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(HX - 6, fy + 1, HZ);
+  const camAlm = fUps.clone().add(new THREE.Vector3(5, 3.2, 6));
+  const focoAlm = fUps.clone().add(new THREE.Vector3(0, 0.8, 0));
+  const camElec = fUps.clone().add(new THREE.Vector3(7, 4.2, 8));
+  const focoElec = fUps.clone().lerp(focoSala, 0.35);
+  const crac = ROOT.getObjectByName('crac_1');
+  const fCrac = crac ? crac.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(HX - 4, fy + 1, HZ - HD / 2);
+  const camFrio = fCrac.clone().add(new THREE.Vector3(5, 3.5, 7));
+  const focoFrio = fCrac.clone().lerp(focoSala, 0.4);
+  const camNoc = new THREE.Vector3(NX + 1.7, y0 + 4.8, NZ + 8.5);
+  const focoNoc = new THREE.Vector3(NX + 1.7, y0 + 0.9, NZ - 0.2);
+  const camTodo = new THREE.Vector3(HX + 12, y0 + 5.5, HZ + HD / 2 + 10);
+  const focoTodo = new THREE.Vector3(HX, fy + 1.3, HZ);
+
   const ease = easeInOutCubic;
-  const IN = 2.0, PAUSA = 1.2, CREC = 0.9, OUT = 2.0;
-  // Etapa 1: la ciudad crece (demanda)
-  const C_IN = 2.0, C_EDIF = 0.7, C_PASO = 0.45, C_HOLD = 1.0;
-  const cEventos = ciudadNueva.map((b, i) => [C_IN + i * C_PASO, b]);
-  const cFin = C_IN + (ciudadNueva.length - 1) * C_PASO + C_EDIF + C_HOLD;
-  const eventos = []; // [tiempo, fila]: cada etapa duplica: 2→4, 4→6
-  let tt = cFin + IN + PAUSA; [[2, 3], [4, 5]].forEach(par => { par.forEach((f, i) => eventos.push([tt + i * 0.35, f])); tt += CREC + PAUSA; });
-  const fin = tt, start = performance.now();
+  const MOVE = 1.45, HOLD = 1.55, HOLD_LINKS = 2.6;
+  let acumulado = [];
+  const etapas = [
+    { cam: camSala, foco: focoSala, txt: 'Complejidad · el Data Center y sus componentes', reveal: null },
+    { cam: camSrv, foco: focoSrv, txt: 'Complejidad · aparecen los servidores', reveal: () => { show(servidores); acumulado = [...servidores]; } },
+    { cam: camSw, foco: focoSw, txt: 'Complejidad · se incorporan los switches', reveal: () => { show(switches); acumulado = [...acumulado, ...switches]; } },
+    { cam: camAlm, foco: focoAlm, txt: 'Complejidad · se conectan los sistemas de almacenamiento', reveal: () => { show(almacenamiento); acumulado = [...acumulado, ...almacenamiento]; } },
+    { cam: camElec, foco: focoElec, txt: 'Complejidad · se incorpora la UPS y la energía', reveal: () => { show(energia); acumulado = [...acumulado, ...energia]; } },
+    { cam: camFrio, foco: focoFrio, txt: 'Complejidad · se incorpora la refrigeración', reveal: () => { show(refrigeracion); acumulado = [...acumulado, ...refrigeracion]; } },
+    { cam: camNoc, foco: focoNoc, txt: 'Complejidad · se muestra el NOC / monitoreo', reveal: () => { show(noc); acumulado = [...acumulado, ...noc]; } },
+    { cam: camTodo, foco: focoTodo, txt: 'Complejidad · más elementos y más relaciones entre ellos', links: true, reveal: () => {
+      show(red); acumulado = [...new Set([...acumulado, ...red])];
+      ROOT.updateMatrixWorld(true);
+      buildLinks(); cpxLinks.visible = true;
+    } },
+    { cam: p0, foco: t0, txt: 'Complejidad · mayor complejidad del sistema', out: true },
+  ];
+
+  let etapa = 0, tEtapa = performance.now(), fase = 'move';
+  let pFrom = p0.clone(), tFrom = t0.clone();
+  const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+  let finished = false;
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    if (cpxAnim2) cancelAnimationFrame(cpxAnim2);
+    cpxAnim2 = null;
+    try { cpxClearHl(); } catch (_) { /* ignore */ }
+    ocultar.forEach(o => { o.visible = vis0.has(o) ? vis0.get(o) : true; });
+    cpxLinks.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    ROOT.remove(cpxLinks);
+    estPuertas.forEach((p, i) => { p.visible = puertasVis[i]; });
+    techo.forEach((o, i) => { o.visible = techoVis[i]; });
+    tabiquesNoc.forEach((o, i) => { o.visible = tabiquesVis[i]; });
+    unlockScriptedCam(ctl, { wasDamp, wasAuto, cam, near0, p0, t0 });
+    btnCpx.disabled = false;
+  };
+
   cpxAnim2 = requestAnimationFrame(function step(now) {
-    const t = (now - start) / 1000;
-    if (t < C_IN) { const u = ease(t / C_IN); cam.position.lerpVectors(p0, pCiudad, u); ctl.target.lerpVectors(t0, focoCiudad, u); estado.textContent = 'Complejidad · la demanda crece'; }
-    else if (t < cFin) {
-      cEventos.forEach(([te, b]) => { const k = Math.min(Math.max((t - te) / C_EDIF, 0), 1); if (k > 0) { b.visible = true; const s = ease(k); b.scale.y = Math.max(s, 0.001); b.position.y = 0.2 + b.userData.h * s / 2; } }); sincronizarCiudad();
-      const n = 3 + cEventos.filter(([te]) => t >= te + C_EDIF * 0.5).length; estado.textContent = `Complejidad · ${n} edificios demandan servicio`;
+    if (finished) return;
+    const e = etapas[etapa];
+    if (!e) { finish(); return; }
+    const t = (now - tEtapa) / 1000;
+    if (fase === 'move') {
+      const u = ease(Math.min(t / MOVE, 1));
+      aimScriptedCam(cam, ctl, tmpP.lerpVectors(pFrom, e.cam, u), tmpT.lerpVectors(tFrom, e.foco, u));
+      estado.textContent = e.txt;
+      if (t >= MOVE) {
+        if (e.out) { finish(); return; }
+        if (e.reveal) e.reveal();
+        cpxHighlight(acumulado);
+        if (e.links && linkMat.emissive) linkMat.emissiveIntensity = 1.6;
+        fase = 'hold';
+        tEtapa = performance.now();
+      }
+    } else {
+      aimScriptedCam(cam, ctl, e.cam, e.foco);
+      estado.textContent = e.txt;
+      if (e.links && linkMat.emissive) {
+        const ritmo = 0.5 + 0.5 * Math.sin(t * 3.2);
+        linkMat.emissiveIntensity = 1.2 + 1.2 * ritmo;
+      }
+      const holdT = e.links ? HOLD_LINKS : HOLD;
+      if (t >= holdT) {
+        etapa++;
+        if (etapa >= etapas.length) { finish(); return; }
+        fase = 'move';
+        tEtapa = performance.now();
+        pFrom = cam.position.clone();
+        tFrom = ctl.target.clone();
+      }
     }
-    else if (t < cFin + IN) { const u = ease((t - cFin) / IN); cam.position.lerpVectors(pCiudad, pIn, u); ctl.target.lerpVectors(focoCiudad, foco, u); if (u > 0.6) techo.forEach(o => o.visible = false); estado.textContent = 'Complejidad · 2 filas'; }
-    else if (t < fin) {
-      eventos.forEach(([te, f]) => { const g = filas[f]; const k = Math.min(Math.max((t - te) / CREC, 0), 1);
-        if (k > 0) { g.visible = true; if (g.userData.sensor) g.userData.sensor.visible = k >= 1; const s = ease(k); g.scale.set(1, Math.max(s, 0.001), 1); g.position.y = 0; } });
-      const n = 2 + eventos.filter(([te]) => t >= te + CREC * 0.5).length; estado.textContent = `Complejidad · ${n} filas · ${n * perRow} racks · ${n * perRow * 6} servidores`;
-    }
-    else if (t < fin + OUT) { const u = ease((t - fin) / OUT); if (u > 0.4) techo.forEach((o, i) => o.visible = techoVis[i]); cam.position.lerpVectors(pIn, p0, u); ctl.target.lerpVectors(foco, t0, u); estado.textContent = 'Complejidad · 6 filas'; }
-    else { techo.forEach((o, i) => o.visible = techoVis[i]); mostrarFilas(rows); layers.querySelector('input[data-k="complejidad"]').checked = true; cam.position.copy(p0); ctl.target.copy(t0); ctl.update(); ctl.enabled = true; ctl.autoRotate = wasAuto; btnCpx.disabled = false; cpxAnim2 = null; return; }
-    ctl.update(); cpxAnim2 = requestAnimationFrame(step);
+    cpxAnim2 = requestAnimationFrame(step);
   });
 }
 
@@ -2609,7 +2769,7 @@ const CAPAS = {
   },
   complejidad: {
     label: 'Complejidad',
-    desc: 'Crecimiento del sistema: la sala pasa de 2 a 6 filas de racks; más elementos y más interacciones entre ellos.',
+    desc: 'Se incorporan progresivamente servidores, switches, almacenamiento, energía, refrigeración y monitoreo; al final se resaltan las conexiones entre ellos.',
     anim: true, off: true,
   },
   emergencia: {
@@ -2726,7 +2886,7 @@ principios.forEach(([label, k, capa], i) => {
   else if (capa && CAPAS[capa].anim) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => mostrarFilas(e.target.checked ? rows : filasIniciales); }
   else if (capa) { l.title = CAPAS[capa].desc; l.querySelector('input').onchange = e => { const on = e.target.checked; CAPAS[capa].objetos.forEach(o => o.visible = on); (CAPAS[capa].grupos || []).forEach(g => { SUB[g].visible = on; const cb = layers.querySelector(`input[data-k="${g}"]`); if (cb) cb.checked = on; }); }; }
   if (capa === 'totalidad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnTot'; b.textContent = 'Todo'; b.title = 'Resalta cada parte y luego el Data Center completo'; b.onclick = ev => { ev.preventDefault(); animarTotalidad(); }; l.appendChild(b); }
-  if (capa === 'complejidad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnCpx'; b.textContent = 'Crecer'; b.title = 'Zoom a la sala: las filas se duplican de 2 a 6'; b.onclick = ev => { ev.preventDefault(); animarComplejidad(); }; l.appendChild(b); }
+  if (capa === 'complejidad') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnCpx'; b.textContent = 'Incorporar'; b.title = 'Incorpora progresivamente componentes e interacciones del Data Center'; b.onclick = ev => { ev.preventDefault(); animarComplejidad(); }; l.appendChild(b); }
   if (capa === 'jerarquia') { const b = document.createElement('button'); b.className = 'btn-rayo'; b.id = 'btnJer'; b.textContent = 'Anim'; b.title = 'Recorrido chip → blade → rack → sistema'; b.onclick = ev => { ev.preventDefault(); animarJerarquia(); }; l.appendChild(b); }
   if (capa === 'enfriamiento') {
     const selEqf = document.createElement('select');

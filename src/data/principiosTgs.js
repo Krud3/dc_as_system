@@ -6,7 +6,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'Define qué elementos hacen parte del Data Center y cuáles no pertenecen.',
     ejemplo:
-      'Los servidores, racks, UPS, refrigeración y sistemas de red están dentro del Data Center, junto con delimitadores físicos como rejas; la red eléctrica externa pertenece al entorno.',
+      'Los servidores, racks, UPS, sistemas de refrigeración y equipos de red hacen parte del Data Center, mientras que la red eléctrica externa y las condiciones climáticas pertenecen al entorno.',
   },
   {
     n: 2,
@@ -22,15 +22,15 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'El Data Center funciona como un conjunto de componentes relacionados que trabajan para cumplir una función en común.',
     ejemplo:
-      'Se recorren los elementos principales del Data Center —servidores, switches, almacenamiento, energía, refrigeración, sala NOC y seguridad— y al final todos quedan resaltados juntos, mostrando que el sistema se entiende como un todo.',
+      'La disponibilidad del Data Center no depende únicamente de los servidores, sino de la interacción entre servidores, almacenamiento, red, energía y refrigeración. Una falla en uno de estos componentes puede afectar el funcionamiento del conjunto.',
   },
   {
     n: 4,
     nombre: 'Equifinalidad',
     aplicacion:
-      'El sistema puede utilizar diferentes medios o caminos para alcanzar un mismo objetivo.',
+      'El Data Center puede alcanzar el objetivo de mantener disponible un servicio crítico partiendo de diferentes condiciones o utilizando diferentes mecanismos de operación.',
     ejemplo:
-      'El Data Center busca mantener disponible un servicio crítico y puede lograrlo mediante diferentes alternativas: redundancia de servidores, replicación de datos o activación de un sitio alterno en caso de una falla.',
+      'Ante una falla del servidor principal, el servicio puede continuar mediante un servidor redundante; ante una falla del almacenamiento, puede recuperarse mediante una réplica de los datos; y ante una falla grave del Data Center, puede utilizarse un sitio alterno. En los diferentes casos se busca llegar al mismo resultado: mantener disponible el servicio.',
   },
   {
     n: 5,
@@ -46,7 +46,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'El Data Center está formado por muchos elementos y relaciones que funcionan de manera coordinada.',
     ejemplo:
-      'Observamos diferentes elementos funcionando al mismo tiempo —servidores, cables, refrigeración, energía y redes— mostrando las relaciones que existen dentro del sistema.',
+      'En la maqueta 3D se incorporan progresivamente servidores, switches, almacenamiento, sistemas de energía, refrigeración y monitoreo, mostrando las diferentes conexiones e interacciones entre estos componentes. A medida que aumentan los elementos y sus relaciones, se evidencia la complejidad del sistema.',
   },
   {
     n: 7,
@@ -54,7 +54,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'Los componentes del Data Center trabajan conjuntamente para producir un funcionamiento que no podría obtenerse si cada elemento trabajara de manera independiente.',
     ejemplo:
-      'La combinación de diferentes servicios operando logra el completo funcionamiento del Data Center.',
+      'La interacción entre servidores, almacenamiento, red, energía y refrigeración permite prestar servicios informáticos de manera continua. Cada componente por separado no puede proporcionar el servicio completo del Data Center.',
   },
   {
     n: 8,
@@ -94,7 +94,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'Acciones que combaten el deterioro y mantienen el sistema organizado: mantenimiento, limpieza, actualización y monitoreo.',
     ejemplo:
-      'Después de mantenimiento, limpieza y actualización de equipos, el Data Center recupera su funcionamiento y mejora sus condiciones de operación.',
+      'Las actividades de mantenimiento, limpieza, actualización y monitoreo aportan recursos y trabajo al sistema para contrarrestar su deterioro y mantenerlo organizado y funcionando.',
   },
   {
     n: 13,
@@ -110,7 +110,7 @@ export const PRINCIPIOS_TGS = [
     aplicacion:
       'Distribución adecuada de recursos y condiciones: carga de trabajo, energía, refrigeración y capacidad deben mantenerse balanceados.',
     ejemplo:
-      'Cuando un servidor recibe demasiadas solicitudes, el sistema reparte parte de la carga hacia otros servidores hasta equilibrarla.',
+      'El Data Center distribuye la carga de procesamiento entre diferentes servidores para evitar la sobrecarga de un equipo y mantener estable el funcionamiento general del sistema.',
   },
   {
     n: 15,
