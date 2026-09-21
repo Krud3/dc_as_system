@@ -93,7 +93,22 @@ if (guideCloseBtn) guideCloseBtn.addEventListener('click', ev => { ev.preventDef
 const setLeds = (on, k = 1) => { M.led.emissiveIntensity = on ? ledBase.ei * k : 0; M.led.color.copy(ledBase.color).multiplyScalar(on ? 1 : 0.35); M.ledGreen.emissiveIntensity = on ? ledGreenBase.ei * k : 0; M.lampara.emissiveIntensity = on ? 1.8 * k : 0; lamparas.forEach(l => l.intensity = on ? lampBase * k : 0); luzSala.intensity = on ? salaBase * k : 0; };
 let calleOn = true;
 const setCalle = on => { calleOn = on; M.farol.emissiveIntensity = on ? 1.6 : 0; faroles.forEach(l => l.intensity = on ? farolBase : 0); if (!on) M.ventana.emissiveIntensity = 0; };
-const reset = () => { setLeds(true); setCalle(true); rayo.visible = false; M.rayo.opacity = 0; energia.linea.material = M.ink; energia.acom.forEach(l => l.material = M.ink); energia.gen.forEach(l => l.material = M.ink); humo.visible = false; M.humo.opacity = 0; M.genLed.emissive.setHex(0); luzGen.intensity = 0; };
+// Luces de ventanas de edificios (materiales propios; no tocar screenBlue/etc. del DC)
+const ciudadWins = [];
+E.traverse(o => { if (o.isMesh && /^deco_ciudad.*_win_/.test(o.name)) ciudadWins.push(o); });
+const winMatCache = new Map();
+const winApagada = mat('win_apagada', 0x151820, 0.5, 0.05, { emissive: 0x000000, emissiveIntensity: 0 });
+const setLucesEdificios = on => {
+  ciudadWins.forEach(o => {
+    if (on) {
+      if (winMatCache.has(o)) { o.material = winMatCache.get(o); winMatCache.delete(o); }
+    } else {
+      if (!winMatCache.has(o)) winMatCache.set(o, o.material);
+      o.material = winApagada;
+    }
+  });
+};
+const reset = () => { setLeds(true); setCalle(true); setLucesEdificios(true); rayo.visible = false; M.rayo.opacity = 0; energia.linea.material = M.ink; energia.acom.forEach(l => l.material = M.ink); energia.gen.forEach(l => l.material = M.ink); humo.visible = false; M.humo.opacity = 0; M.genLed.emissive.setHex(0); luzGen.intensity = 0; };
 const rnd = () => Math.random();
 function simularRayo(modo = 'entorno') {
   if (anim) return; reset(); openGuide(modo === 'resiliencia' ? 9 : 2); const t0 = performance.now(); btnRayo.disabled = true; btnRes.disabled = true;
@@ -102,7 +117,7 @@ function simularRayo(modo = 'entorno') {
     const t = (now - t0) / 1000;
     if (t < 0.6) { // descarga: destellos
       rayo.visible = true; M.rayo.opacity = (Math.floor(t * 24) % 3 === 0) ? 1 : 0.15; estado.textContent = 'Descarga atmosférica en torre AT';
-    } else if (t < 0.9) { rayo.visible = false; energia.linea.material = M.lineaOff; energia.acom.forEach(l => l.material = M.lineaOff); estado.textContent = res ? 'Apagón: la ciudad y el datacenter pierden la red' : 'Pérdida de la acometida eléctrica'; setLeds(false); setCalle(false); }
+    } else if (t < 0.9) { rayo.visible = false; energia.linea.material = M.lineaOff; energia.acom.forEach(l => l.material = M.lineaOff); estado.textContent = res ? 'Apagón: la ciudad y el datacenter pierden la red' : 'Pérdida de la acometida eléctrica'; setLeds(false); setCalle(false); setLucesEdificios(false); }
     else if (t < 3.0) { // parpadeo de luces bajo UPS
       setLeds(rnd() > 0.35, 0.6 + rnd() * 0.6); estado.textContent = 'Parpadeo · UPS sosteniendo la carga';
     } else if (t < 4.2) { // arranque de planta
@@ -111,7 +126,7 @@ function simularRayo(modo = 'entorno') {
     } else if (t < (res ? 9.5 : 7.5)) { // operación en planta
       setLeds(true); M.humo.opacity = 0.3 + Math.sin(t * 6) * 0.05; humo.position.y = y0 + 2.6 + Math.sin(t * 2) * 0.1; estado.textContent = res ? 'Resiliencia: el datacenter opera con su planta; la calle sigue a oscuras' : 'Operando con planta eléctrica interna';
     } else if (t < (res ? 10.5 : 8.5)) { // retorno de red
-      energia.linea.material = M.ink; energia.acom.forEach(l => l.material = M.lineaOn); setCalle(true); estado.textContent = 'Retorno de la red · retransferencia';
+      energia.linea.material = M.ink; energia.acom.forEach(l => l.material = M.lineaOn); setCalle(true); setLucesEdificios(true); estado.textContent = 'Retorno de la red · retransferencia';
     } else { reset(); anim = null; btnRayo.disabled = false; btnRes.disabled = false; return; }
     anim = requestAnimationFrame(step);
   });
